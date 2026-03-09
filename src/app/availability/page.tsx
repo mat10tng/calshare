@@ -236,12 +236,6 @@ export default function AvailabilityPage() {
             >
               Connect a calendar
             </Link>
-            <Link
-              href="/sessions/new"
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              Schedule with open availability →
-            </Link>
           </div>
         </div>
       ) : (
