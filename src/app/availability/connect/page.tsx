@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { AnonymisationPreview } from '@/components/AnonymisationPreview';
+import { IcsGuide } from '@/components/IcsGuide';
 import { parseIcsFile } from '@/lib/ics-parser';
 import { generatePKCE, buildGoogleAuthUrl, exchangeGoogleCode } from '@/lib/oauth';
 import { fetchGoogleEvents } from '@/lib/google-calendar';
@@ -19,6 +20,7 @@ export default function ConnectPage() {
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -147,7 +149,7 @@ export default function ConnectPage() {
       {/* Path C: Guided export (placeholder — implemented in Task 8) */}
       <p className="text-sm text-gray-500 text-center">
         Not sure how to export?{' '}
-        <button className="text-blue-600 underline hover:text-blue-700">
+        <button onClick={() => setShowGuide(true)} className="text-blue-600 underline hover:text-blue-700">
           See step-by-step guide
         </button>
       </p>
@@ -158,6 +160,25 @@ export default function ConnectPage() {
           source={pending.source}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
+        />
+      )}
+      {showGuide && (
+        <IcsGuide
+          onClose={() => setShowGuide(false)}
+          onFileReady={async (file) => {
+            setShowGuide(false);
+            setLoading(true);
+            setError(null);
+            try {
+              const content = await file.text();
+              const blocks = parseIcsFile(content);
+              setPending({ blocks, source: file.name });
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Failed to parse .ics file.');
+            } finally {
+              setLoading(false);
+            }
+          }}
         />
       )}
     </main>

@@ -1,0 +1,114 @@
+'use client';
+import { useState } from 'react';
+
+interface Props {
+  onClose: () => void;
+  onFileReady: (file: File) => void;
+}
+
+const STEPS = {
+  google: [
+    'Open Google Calendar at calendar.google.com',
+    'Click the gear icon (⚙) → Settings',
+    'In the left sidebar, click "Import & Export"',
+    'Under "Export", click Export — downloads a .zip file',
+    'Unzip the downloaded file to find your .ics files',
+    'Upload the .ics file using the button below',
+  ],
+  outlook: [
+    'Open Outlook and go to File → Open & Export → Import/Export',
+    'Select "Export to a file" → Next',
+    'Select "iCalendar Format (.ics)" → Next',
+    'Choose your calendar folder → Next',
+    'Choose a save location and click Finish',
+    'Upload the saved .ics file using the button below',
+  ],
+};
+
+export function IcsGuide({ onClose, onFileReady }: Props) {
+  const [provider, setProvider] = useState<'google' | 'outlook' | null>(null);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      onFileReady(file);
+      onClose();
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ics-guide-title"
+    >
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+        <div className="flex justify-between items-start mb-4">
+          <h2 id="ics-guide-title" className="text-lg font-semibold">
+            Export your calendar manually
+          </h2>
+          <button
+            onClick={onClose}
+            aria-label="Close guide"
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-5">
+          No OAuth needed — export your calendar yourself and upload the file.
+          Your raw event data never leaves your device.
+        </p>
+
+        {!provider ? (
+          <div className="flex gap-3">
+            <button
+              onClick={() => setProvider('google')}
+              className="flex-1 border rounded-lg p-4 hover:bg-gray-50 text-sm font-medium text-center transition-colors"
+            >
+              📅 Google Calendar
+            </button>
+            <button
+              onClick={() => setProvider('outlook')}
+              className="flex-1 border rounded-lg p-4 hover:bg-gray-50 text-sm font-medium text-center transition-colors"
+            >
+              📧 Outlook / Microsoft 365
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => setProvider(null)}
+              className="text-sm text-blue-600 hover:underline mb-4 flex items-center gap-1"
+            >
+              ← Back
+            </button>
+            <ol className="space-y-2 mb-5">
+              {STEPS[provider].map((step, i) => (
+                <li key={i} className="flex gap-3 text-sm">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  <span className="text-gray-700">{step}</span>
+                </li>
+              ))}
+            </ol>
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-blue-300 rounded-lg px-4 py-4 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
+              <span className="text-sm font-medium text-blue-700">
+                Upload your .ics file
+              </span>
+              <input
+                type="file"
+                accept=".ics"
+                className="sr-only"
+                onChange={handleFile}
+              />
+            </label>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
