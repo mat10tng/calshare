@@ -225,6 +225,7 @@ export default function ConnectPage() {
           onCancel={handleCancel}
         />
       )}
+
       {showGuide && (
         <IcsGuide
           onClose={() => setShowGuide(false)}

@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react';
-import type { BusyBlock, UserPreferences } from '@/types';
+import type { BusyBlock, CalendarSource, UserPreferences } from '@/types';
 
 const DEFAULT_PREFS: UserPreferences = {
   workingHours: {
@@ -19,13 +19,16 @@ const DEFAULT_PREFS: UserPreferences = {
 
 interface AppState {
   blocks: BusyBlock[];
+  sources: CalendarSource[];
   preferences: UserPreferences;
   sessionId: string | null;
   organizerToken: string | null;
 }
 
 type Action =
+  | { type: 'IMPORT_CALENDAR'; source: CalendarSource; blocks: BusyBlock[] }
   | { type: 'SET_BLOCKS'; blocks: BusyBlock[] }
+  | { type: 'SET_SOURCES'; sources: CalendarSource[] }
   | { type: 'ADD_BLOCKS'; blocks: BusyBlock[] }
   | { type: 'CLEAR_BLOCKS' }
   | { type: 'SET_PREFERENCES'; preferences: UserPreferences }
@@ -34,12 +37,20 @@ type Action =
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'IMPORT_CALENDAR':
+      return {
+        ...state,
+        sources: [...state.sources, action.source],
+        blocks: [...state.blocks, ...action.blocks],
+      };
     case 'SET_BLOCKS':
       return { ...state, blocks: action.blocks };
+    case 'SET_SOURCES':
+      return { ...state, sources: action.sources };
     case 'ADD_BLOCKS':
       return { ...state, blocks: [...state.blocks, ...action.blocks] };
     case 'CLEAR_BLOCKS':
-      return { ...state, blocks: [] };
+      return { ...state, blocks: [], sources: [] };
     case 'SET_PREFERENCES':
       return { ...state, preferences: action.preferences };
     case 'SET_SESSION':
@@ -53,6 +64,7 @@ function reducer(state: AppState, action: Action): AppState {
 
 const INITIAL_STATE: AppState = {
   blocks: [],
+  sources: [],
   preferences: DEFAULT_PREFS,
   sessionId: null,
   organizerToken: null,
@@ -79,6 +91,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (savedBlocks) {
         dispatch({ type: 'SET_BLOCKS', blocks: JSON.parse(savedBlocks) });
       }
+      const savedSources = localStorage.getItem('calshare:sources');
+      if (savedSources) {
+        dispatch({ type: 'SET_SOURCES', sources: JSON.parse(savedSources) });
+      }
       const savedSessionId = localStorage.getItem('calshare:sessionId');
       const savedOrganizerToken = localStorage.getItem('calshare:organizerToken');
       if (savedSessionId && savedOrganizerToken) {
@@ -94,18 +110,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem('calshare:preferences', JSON.stringify(state.preferences));
-    } catch {
-      // localStorage unavailable — silently ignore
-    }
+    } catch { /* ignore */ }
   }, [state.preferences]);
 
   useEffect(() => {
     try {
       localStorage.setItem('calshare:blocks', JSON.stringify(state.blocks));
-    } catch {
-      // localStorage unavailable — silently ignore
-    }
+    } catch { /* ignore */ }
   }, [state.blocks]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('calshare:sources', JSON.stringify(state.sources));
+    } catch { /* ignore */ }
+  }, [state.sources]);
 
   useEffect(() => {
     try {
@@ -116,9 +134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('calshare:sessionId');
         localStorage.removeItem('calshare:organizerToken');
       }
-    } catch {
-      // localStorage unavailable — silently ignore
-    }
+    } catch { /* ignore */ }
   }, [state.sessionId, state.organizerToken]);
 
   return (

@@ -4,6 +4,22 @@ export interface BusyBlock {
   busy: boolean;
   allDay: boolean;
   title?: string;  // optional — only included when user opts in
+  sourceId?: string; // links to CalendarSource.id
+}
+
+export type CalendarCategory =
+  | 'work'
+  | 'personal'
+  | 'fitness'
+  | 'school'
+  | 'family'
+  | 'social';
+
+export interface CalendarSource {
+  id: string;                        // uuid generated at import time
+  label: string;                     // "Google Calendar", "work.ics", etc.
+  category: CalendarCategory | null; // null = user skipped
+  addedAt: string;                   // ISO timestamp
 }
 
 export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';

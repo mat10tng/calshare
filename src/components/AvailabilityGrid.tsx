@@ -1,6 +1,9 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import type { BusyBlock } from '@/types';
+import { findLargestBusyRect } from '@/lib/gif-placement';
+import { randomCatGif } from '@/lib/gif-catalog';
 
 interface Props {
   blocks: BusyBlock[];
@@ -92,6 +95,21 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
   const onBlocksChangeRef = useRef(onBlocksChange);
   onBlocksChangeRef.current = onBlocksChange;
 
+  // Pick a random cat GIF once per mount (stable across re-renders)
+  const catGif = useRef(randomCatGif());
+
+  // Compute the largest qualifying busy rectangle across all blocks
+  const gifRect = useMemo(() => {
+    const grid: boolean[][] = HOURS.map((hour) =>
+      dates.map((date) => {
+        const slotStart = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00.000Z`);
+        const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+        return blocks.some((b) => b.busy && new Date(b.start) < slotEnd && new Date(b.end) > slotStart);
+      }),
+    );
+    return findLargestBusyRect(grid);
+  }, [blocks, dates]);
+
   // Clear local overrides when the parent replaces the block list
   useEffect(() => {
     setOverrides(new Map());
@@ -171,63 +189,93 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
     setDrag({ startRow: row, startCol: col, currentRow: row, currentCol: col, mode: !busy });
   }
 
-  return (
-    <div className="overflow-x-auto">
-      <table
-        className={`text-xs border-collapse min-w-full ${drag ? 'select-none' : ''}`}
-        onMouseLeave={() => { if (!drag) setHovered(null); }}
+  let gifOverlay: React.ReactNode = null;
+  if (gifRect) {
+    const ROW_HEIGHT = 16;
+    const COL_WIDTH = 36;
+    const HEADER_ROW = 28;
+    const TIME_COL = 48;
+    const top = HEADER_ROW + gifRect.startRow * ROW_HEIGHT;
+    const left = TIME_COL + gifRect.startCol * COL_WIDTH;
+    const width = gifRect.cols * COL_WIDTH;
+    const height = gifRect.rows * ROW_HEIGHT;
+    gifOverlay = (
+      <div
+        className="absolute pointer-events-none overflow-hidden flex items-center justify-center"
+        style={{ top, left, width, height }}
       >
-        <thead>
-          <tr>
-            <th className="w-12 text-right pr-2 text-gray-400 font-normal" />
-            {dates.map((d, ci) => (
-              <th
-                key={d}
-                className={`px-1 py-1 font-medium min-w-[36px] text-center ${
-                  hovered?.col === ci && !drag ? 'text-blue-600' : 'text-gray-500'
-                }`}
-              >
-                {d.slice(5)}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {HOURS.map((hour, ri) => (
-            <tr key={hour}>
-              <td
-                className={`text-right pr-2 py-0 leading-none ${
-                  hovered?.row === ri && !drag ? 'text-blue-600 font-semibold' : 'text-gray-400'
-                }`}
-              >
-                {String(hour).padStart(2, '0')}:00
-              </td>
-              {dates.map((_, ci) => (
-                <td
-                  key={ci}
-                  className={cellClass(ri, ci)}
-                  onMouseDown={() => handleCellMouseDown(ri, ci)}
-                  onMouseEnter={() => {
-                    setHovered({ row: ri, col: ci });
-                    setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null);
-                  }}
-                />
+        <Image
+          src={`/gifs/${catGif.current}`}
+          alt="cat"
+          width={width}
+          height={height}
+          className="object-cover opacity-70 rounded"
+          unoptimized
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <div className="overflow-x-auto">
+        <table
+          className={`text-xs border-collapse min-w-full ${drag ? 'select-none' : ''}`}
+          onMouseLeave={() => { if (!drag) setHovered(null); }}
+        >
+          <thead>
+            <tr>
+              <th className="w-12 text-right pr-2 text-gray-400 font-normal" />
+              {dates.map((d, ci) => (
+                <th
+                  key={d}
+                  className={`px-1 py-1 font-medium min-w-[36px] text-center ${
+                    hovered?.col === ci && !drag ? 'text-blue-600' : 'text-gray-500'
+                  }`}
+                >
+                  {d.slice(5)}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex gap-4 mt-3 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> Busy
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-green-100 inline-block" /> Free
-        </span>
-        {onBlocksChange && (
-          <span className="ml-auto italic">Drag to toggle busy / free</span>
-        )}
+          </thead>
+          <tbody>
+            {HOURS.map((hour, ri) => (
+              <tr key={hour}>
+                <td
+                  className={`text-right pr-2 py-0 leading-none ${
+                    hovered?.row === ri && !drag ? 'text-blue-600 font-semibold' : 'text-gray-400'
+                  }`}
+                >
+                  {String(hour).padStart(2, '0')}:00
+                </td>
+                {dates.map((_, ci) => (
+                  <td
+                    key={ci}
+                    className={cellClass(ri, ci)}
+                    onMouseDown={() => handleCellMouseDown(ri, ci)}
+                    onMouseEnter={() => {
+                      setHovered({ row: ri, col: ci });
+                      setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null);
+                    }}
+                  />
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="flex gap-4 mt-3 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> Busy
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-sm bg-green-100 inline-block" /> Free
+          </span>
+          {onBlocksChange && (
+            <span className="ml-auto italic">Drag to toggle busy / free</span>
+          )}
+        </div>
       </div>
+      {gifOverlay}
     </div>
   );
 }
