@@ -41,6 +41,7 @@ export async function exchangeGoogleCode(
     }),
   });
   const data = await res.json();
+  if (data.error) throw new Error(data.error_description ?? data.error);
   if (!data.access_token) throw new Error('Google OAuth token exchange failed.');
   return data.access_token as string;
 }
