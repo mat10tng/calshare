@@ -121,8 +121,6 @@ export default function AvailabilityPage() {
       if (!res.ok) throw new Error('Failed to create session');
       const { sessionId: newSessionId, organizerToken } = await res.json();
 
-      dispatch({ type: 'SET_SESSION', sessionId: newSessionId, organizerToken });
-
       const resolvedName = createName.trim() || `Group ${newSessionId}`;
       dispatch({
         type: 'ADD_GROUP',
@@ -168,12 +166,12 @@ export default function AvailabilityPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantToken: sessionId, blocks: state.blocks }),
       });
+      const joinData = await joinRes.json().catch(() => ({}));
       if (!joinRes.ok) {
-        const d = await joinRes.json().catch(() => ({}));
-        throw new Error((d as { error?: string }).error ?? 'Failed to join group.');
+        throw new Error((joinData as { error?: string }).error ?? 'Failed to join group.');
       }
 
-      const { participantId } = await joinRes.json() as { participantId: string };
+      const { participantId } = joinData as { participantId: string };
       dispatch({
         type: 'ADD_GROUP',
         group: {
