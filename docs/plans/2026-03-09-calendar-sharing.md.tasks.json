@@ -1,0 +1,22 @@
+{
+  "planPath": "docs/plans/2026-03-09-calendar-sharing.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Project Scaffold", "status": "pending"},
+    {"id": 1, "subject": "Task 1: Anonymisation Engine", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 2: Merge Engine", "status": "pending", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: Vercel KV Session API Routes", "status": "pending", "blockedBy": [0]},
+    {"id": 4, "subject": "Task 4: App Context + Preferences Store", "status": "pending", "blockedBy": [0]},
+    {"id": 5, "subject": "Task 5: Anonymisation Preview Component", "status": "pending", "blockedBy": [1, 4]},
+    {"id": 6, "subject": "Task 6: Calendar Connect Page (.ics)", "status": "pending", "blockedBy": [5]},
+    {"id": 7, "subject": "Task 7: OAuth PKCE Flow (Google + Microsoft)", "status": "pending", "blockedBy": [6]},
+    {"id": 8, "subject": "Task 8: ICS Export Guide (Path C)", "status": "pending", "blockedBy": [6]},
+    {"id": 9, "subject": "Task 9: Preferences Editor Page", "status": "pending", "blockedBy": [4]},
+    {"id": 10, "subject": "Task 10: Availability Dashboard + Merge View", "status": "pending", "blockedBy": [2, 4]},
+    {"id": 11, "subject": "Task 11: Group Session — Create + Organiser View", "status": "pending", "blockedBy": [3, 10]},
+    {"id": 12, "subject": "Task 12: Group Session — Participant Join Flow", "status": "pending", "blockedBy": [11]},
+    {"id": 13, "subject": "Task 13: Export Panel (.ics + PDF + shareable link)", "status": "pending", "blockedBy": [10]},
+    {"id": 14, "subject": "Task 14: Landing Page + Navigation", "status": "pending", "blockedBy": [10]},
+    {"id": 15, "subject": "Task 15: Deploy to Vercel + KV Setup", "status": "pending", "blockedBy": [14, 12, 13]}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00.000Z"
+}
