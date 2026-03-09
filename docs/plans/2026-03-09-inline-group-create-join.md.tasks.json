@@ -1,0 +1,10 @@
+{
+  "planPath": "docs/plans/2026-03-09-inline-group-create-join.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 1: TDD — parseSessionId utility", "status": "pending"},
+    {"id": 1, "subject": "Task 2: Remove redundant '+ New group' button from GroupsList", "status": "pending", "blockedBy": []},
+    {"id": 2, "subject": "Task 3: Add inline create/join panel to availability page", "status": "pending", "blockedBy": [0, 1]},
+    {"id": 3, "subject": "Task 4: Remove empty-state link to /sessions/new", "status": "pending", "blockedBy": [2]}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00.000Z"
+}
