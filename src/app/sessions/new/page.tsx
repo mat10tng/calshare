@@ -69,7 +69,7 @@ export default function NewSessionPage() {
           max={20}
           value={quorum}
           onChange={(e) => setQuorum(Math.max(1, Math.min(20, Number(e.target.value))))}
-          className="border rounded-lg px-3 py-2 w-full text-sm"
+          className="border rounded-lg px-3 py-2 w-full text-base"
         />
         <p className="text-xs text-gray-400 mt-1">
           Only show times where at least {quorum} {quorum !== 1 ? 'people are' : 'person is'} available.
