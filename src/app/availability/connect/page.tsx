@@ -118,39 +118,36 @@ export default function ConnectPage() {
         Your calendar data is processed entirely in your browser. Event details are never stored or transmitted.
       </p>
 
-      {/* Path A: OAuth (placeholder — implemented in Task 7) */}
+      {/* Path B: import from file */}
       <section className="mb-8">
-        <h2 className="text-base font-semibold mb-3">Connect via account</h2>
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleGoogleConnect}
-            disabled={loading}
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            <span className="text-lg">📅</span>
-            <span>Connect Google Calendar</span>
-          </button>
-          <button
-            onClick={handleMicrosoftConnect}
-            disabled={loading}
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            <span className="text-lg">📧</span>
-            <span>Connect Outlook / Microsoft 365</span>
-          </button>
-        </div>
-      </section>
-
-      {/* Path B: .ics upload */}
-      <section className="mb-6">
-        <h2 className="text-base font-semibold mb-3">Upload a calendar file</h2>
+        <h2 className="text-base font-semibold mb-1">Import from file</h2>
         <p className="text-sm text-gray-500 mb-3">
-          Export your calendar as a <code className="bg-gray-100 px-1 rounded">.ics</code> file and upload it here.
+          Export your calendar as a <code className="bg-gray-100 px-1 rounded">.ics</code> file and upload it.
           Nothing is sent to any server.
         </p>
+        <div className="flex flex-col gap-2 mb-3">
+          <a
+            href="https://calendar.google.com/calendar/r/settings/export"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-lg">📅</span>
+            <span>Export from Google Calendar →</span>
+          </a>
+          <a
+            href="https://outlook.live.com/calendar/0/options/calendar/SharedCalendars"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-lg">📧</span>
+            <span>Export from Outlook →</span>
+          </a>
+        </div>
         <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
           <span className="text-sm font-medium text-gray-700">
-            {loading ? 'Processing…' : 'Click to choose .ics file'}
+            {loading ? 'Processing…' : 'Click to upload .ics file'}
           </span>
           <input
             type="file"
@@ -161,15 +158,39 @@ export default function ConnectPage() {
           />
         </label>
         {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+        <p className="text-sm text-gray-400 mt-2 text-center">
+          Need help?{' '}
+          <button onClick={() => setShowGuide(true)} className="text-blue-600 underline hover:text-blue-700">
+            See step-by-step guide
+          </button>
+        </p>
       </section>
 
-      {/* Path C: Guided export (placeholder — implemented in Task 8) */}
-      <p className="text-sm text-gray-500 text-center">
-        Not sure how to export?{' '}
-        <button onClick={() => setShowGuide(true)} className="text-blue-600 underline hover:text-blue-700">
-          See step-by-step guide
-        </button>
-      </p>
+      {/* Path A: OAuth sync */}
+      <section className="mb-6">
+        <h2 className="text-base font-semibold mb-1">Sync via account</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Sign in once and your availability stays up to date automatically.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={handleGoogleConnect}
+            disabled={loading}
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <span className="text-lg">📅</span>
+            <span>Sync Google Calendar</span>
+          </button>
+          <button
+            onClick={handleMicrosoftConnect}
+            disabled={loading}
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <span className="text-lg">📧</span>
+            <span>Sync Outlook / Microsoft 365</span>
+          </button>
+        </div>
+      </section>
 
       {pending && (
         <AnonymisationPreview
