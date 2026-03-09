@@ -37,14 +37,8 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
 
   return (
     <section className="mt-10">
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3">
         <h2 className="text-base font-semibold">Your Groups</h2>
-        <Link
-          href="/sessions/new"
-          className="text-sm border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
-        >
-          + New group
-        </Link>
       </div>
       <ul className="divide-y border rounded-xl overflow-hidden">
         {groups.map((group) => (
