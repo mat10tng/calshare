@@ -40,6 +40,32 @@ export function findLargestBusyRect(grid: boolean[][]): BusyRect | null {
   return best;
 }
 
+/**
+ * Finds all non-overlapping qualifying rectangles by repeatedly finding the
+ * largest, masking it out, and searching again until none remain.
+ */
+export function findAllBusyRects(grid: boolean[][]): BusyRect[] {
+  const numRows = grid.length;
+  const numCols = grid[0]?.length ?? 0;
+  // Deep copy so we can mask without mutating the caller's grid
+  const work: boolean[][] = grid.map((row) => [...row]);
+  const results: BusyRect[] = [];
+
+  while (true) {
+    const rect = findLargestBusyRect(work);
+    if (!rect) break;
+    results.push(rect);
+    // Mask out the found rectangle so next iteration finds a different region
+    for (let r = rect.startRow; r < rect.startRow + rect.rows; r++) {
+      for (let c = rect.startCol; c < rect.startCol + rect.cols; c++) {
+        if (r < numRows && c < numCols) work[r][c] = false;
+      }
+    }
+  }
+
+  return results;
+}
+
 interface HistogramResult {
   area: number;
   rect: BusyRect;

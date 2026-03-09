@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import type { BusyBlock } from '@/types';
 import { findLargestBusyRect } from '@/lib/gif-placement';
 import { randomCatGif } from '@/lib/gif-catalog';
@@ -95,10 +94,32 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
   const onBlocksChangeRef = useRef(onBlocksChange);
   onBlocksChangeRef.current = onBlocksChange;
 
-  // Pick a random cat GIF once per mount (stable across re-renders)
-  const catGif = useRef(randomCatGif());
+  // Measure actual cell dimensions from the rendered table
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [cellMetrics, setCellMetrics] = useState<{ rowH: number; colW: number; headerH: number; timeW: number } | null>(null);
 
-  // Compute the largest qualifying busy rectangle across all blocks
+  useEffect(() => {
+    function measure() {
+      const table = tableRef.current;
+      if (!table) return;
+      const thead = table.querySelector('thead');
+      const firstDataRow = table.querySelector('tbody tr');
+      const timeCell = table.querySelector('tbody tr td:first-child');
+      const firstDataCell = table.querySelector('tbody tr td:nth-child(2)');
+      if (!thead || !firstDataRow || !timeCell || !firstDataCell) return;
+      setCellMetrics({
+        headerH: thead.getBoundingClientRect().height,
+        rowH: firstDataRow.getBoundingClientRect().height,
+        timeW: timeCell.getBoundingClientRect().width,
+        colW: firstDataCell.getBoundingClientRect().width,
+      });
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [dates]);
+
+  // Find the single largest qualifying busy rectangle
   const gifRect = useMemo(() => {
     const grid: boolean[][] = HOURS.map((hour) =>
       dates.map((date) => {
@@ -109,6 +130,9 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
     );
     return findLargestBusyRect(grid);
   }, [blocks, dates]);
+
+  // Pick a random cat GIF once per mount (stable across re-renders)
+  const catGif = useRef(randomCatGif());
 
   // Clear local overrides when the parent replaces the block list
   useEffect(() => {
@@ -189,37 +213,31 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
     setDrag({ startRow: row, startCol: col, currentRow: row, currentCol: col, mode: !busy });
   }
 
-  let gifOverlay: React.ReactNode = null;
-  if (gifRect) {
-    const ROW_HEIGHT = 16;
-    const COL_WIDTH = 36;
-    const HEADER_ROW = 28;
-    const TIME_COL = 48;
-    const top = HEADER_ROW + gifRect.startRow * ROW_HEIGHT;
-    const left = TIME_COL + gifRect.startCol * COL_WIDTH;
-    const width = gifRect.cols * COL_WIDTH;
-    const height = gifRect.rows * ROW_HEIGHT;
-    gifOverlay = (
+  const gifOverlay: React.ReactNode = cellMetrics && gifRect ? (() => {
+    const top = cellMetrics.headerH + gifRect.startRow * cellMetrics.rowH;
+    const left = cellMetrics.timeW + gifRect.startCol * cellMetrics.colW;
+    const width = gifRect.cols * cellMetrics.colW;
+    const height = gifRect.rows * cellMetrics.rowH;
+    return (
       <div
-        className="absolute pointer-events-none overflow-hidden flex items-center justify-center"
-        style={{ top, left, width, height }}
+        className="absolute pointer-events-none overflow-hidden rounded"
+        style={{ top, left, width, height, opacity: 0.75, willChange: 'transform' }}
       >
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={`/gifs/${catGif.current}`}
           alt="cat"
-          width={width}
-          height={height}
-          className="object-cover opacity-70 rounded"
-          unoptimized
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       </div>
     );
-  }
+  })() : null;
 
   return (
-    <div className="relative">
-      <div className="overflow-x-auto">
+    <div className="overflow-x-auto">
+      <div className="relative inline-block min-w-full">
         <table
+          ref={tableRef}
           className={`text-xs border-collapse min-w-full ${drag ? 'select-none' : ''}`}
           onMouseLeave={() => { if (!drag) setHovered(null); }}
         >
@@ -263,19 +281,19 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
             ))}
           </tbody>
         </table>
-        <div className="flex gap-4 mt-3 text-xs text-gray-500">
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> Busy
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-green-100 inline-block" /> Free
-          </span>
-          {onBlocksChange && (
-            <span className="ml-auto italic">Drag to toggle busy / free</span>
-          )}
-        </div>
+        {gifOverlay}
       </div>
-      {gifOverlay}
+      <div className="flex gap-4 mt-3 text-xs text-gray-500">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> Busy
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-green-100 inline-block" /> Free
+        </span>
+        {onBlocksChange && (
+          <span className="ml-auto italic">Drag to toggle busy / free</span>
+        )}
+      </div>
     </div>
   );
 }
