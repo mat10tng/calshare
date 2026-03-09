@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import type { BusyBlock } from '@/types';
 
 interface Props {
@@ -11,10 +12,32 @@ interface Props {
 export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Props) {
   const preview = blocks.slice(0, 8);
 
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+  const formatEnd = (iso: string) => {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? iso : d.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' });
+  };
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onCancel]);
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-        <h2 className="text-xl font-semibold mb-1">Your calendar data has been anonymised</h2>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="anon-preview-title"
+        className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6"
+      >
+        <h2 id="anon-preview-title" className="text-xl font-semibold mb-1">Your calendar data has been anonymised</h2>
         <p className="text-sm text-gray-500 mb-5">Source: {source}</p>
 
         <div className="grid grid-cols-2 gap-4 mb-5">
@@ -48,7 +71,7 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
                 <div key={i} className="text-xs font-mono text-gray-700">
                   {b.allDay
                     ? `${b.start}  (all day)  ${b.busy ? 'busy' : 'free'}`
-                    : `${new Date(b.start).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} → ${new Date(b.end).toLocaleString(undefined, { hour: '2-digit', minute: '2-digit' })}  ${b.busy ? 'busy' : 'free'}`
+                    : `${formatTime(b.start)} → ${formatEnd(b.end)}  ${b.busy ? 'busy' : 'free'}`
                   }
                 </div>
               ))}
@@ -66,6 +89,7 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
         <div className="flex gap-3">
           <button
             onClick={onConfirm}
+            autoFocus
             className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             Continue
