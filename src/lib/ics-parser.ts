@@ -10,6 +10,9 @@ export function parseIcsFile(content: string): BusyBlock[] {
     throw new Error('Invalid .ics file — could not parse calendar data.');
   }
 
+  // ical.js types do not expose the internal jCal array structure returned by
+  // ICAL.parse(), so the cast to `any` is required to satisfy the Component
+  // constructor signature. The runtime behaviour is correct.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const comp = new ICAL.Component(jcal as any);
   const vevents = comp.getAllSubcomponents('vevent');
