@@ -23,6 +23,17 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
   }
 
+  const MAX_PARTICIPANTS = 20;
+  const MAX_BLOCKS_PER_PARTICIPANT = 1000;
+
+  if (Object.keys(session.participants).length >= MAX_PARTICIPANTS) {
+    return NextResponse.json({ error: 'Session is full' }, { status: 409 });
+  }
+
+  if (blocks.length > MAX_BLOCKS_PER_PARTICIPANT) {
+    return NextResponse.json({ error: 'Too many blocks' }, { status: 400 });
+  }
+
   // Strip anything beyond BusyBlock fields for safety
   const safeBlocks: BusyBlock[] = blocks.map(b => ({
     start: String(b.start),
@@ -30,6 +41,13 @@ export async function POST(
     busy: Boolean(b.busy),
     allDay: Boolean(b.allDay),
   }));
+
+  const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/;
+  for (const b of safeBlocks) {
+    if (!ISO_RE.test(b.start) || !ISO_RE.test(b.end)) {
+      return NextResponse.json({ error: 'Invalid block date format' }, { status: 400 });
+    }
+  }
 
   const participantId = generateToken(12);
   const updated: Session = {

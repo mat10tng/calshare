@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const lookAheadDays = Number(body.lookAheadDays ?? 14);
   const expiryDays = Number(body.expiryDays ?? 7);
 
-  if (quorum < 1 || lookAheadDays < 1 || lookAheadDays > 90) {
+  if (!Number.isFinite(quorum) || quorum < 1 || !Number.isFinite(lookAheadDays) || lookAheadDays < 1 || lookAheadDays > 90) {
     return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
   }
 
