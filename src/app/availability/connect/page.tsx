@@ -146,7 +146,16 @@ export default function ConnectPage() {
             className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             <span className="text-lg">📧</span>
-            <span>Export from Outlook →</span>
+            <span>Export from Outlook.com (personal) →</span>
+          </a>
+          <a
+            href="https://outlook.office.com/calendar/0/options/calendar/SharedCalendars"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <span className="text-lg">🏢</span>
+            <span>Export from Microsoft 365 (work/school) →</span>
           </a>
         </div>
         <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">

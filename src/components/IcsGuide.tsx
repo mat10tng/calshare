@@ -18,19 +18,31 @@ const PROVIDERS = {
     ],
   },
   outlook: {
-    label: '📧 Outlook / Microsoft 365',
+    label: '📧 Outlook.com (personal)',
     exportUrl: 'https://outlook.live.com/calendar/0/options/calendar/SharedCalendars',
     steps: [
       'Click "Open export page →" below',
-      'Under "Publish a calendar", choose your calendar and select "ICS" format',
-      'Click Publish, then copy the ICS link and open it to download',
+      'Under "Publish a calendar", select your calendar and set permissions to "Can view all details"',
+      'Click Publish — an ICS link appears below the button',
+      'Click the ICS link to download the .ics file',
+      'Upload the downloaded .ics file using the button below',
+    ],
+  },
+  office365: {
+    label: '🏢 Microsoft 365 (work/school)',
+    exportUrl: 'https://outlook.office.com/calendar/0/options/calendar/SharedCalendars',
+    steps: [
+      'Click "Open export page →" below',
+      'Under "Publish a calendar", select your calendar and set permissions to "Can view all details"',
+      'Click Publish — an ICS link appears below the button',
+      'Click the ICS link to download the .ics file',
       'Upload the downloaded .ics file using the button below',
     ],
   },
 } as const;
 
 export function IcsGuide({ onClose, onFileReady }: Props) {
-  const [provider, setProvider] = useState<'google' | 'outlook' | null>(null);
+  const [provider, setProvider] = useState<keyof typeof PROVIDERS | null>(null);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
