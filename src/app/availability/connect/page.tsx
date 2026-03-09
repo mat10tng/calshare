@@ -10,8 +10,7 @@ import { generatePKCE, buildGoogleAuthUrl, exchangeGoogleCode } from '@/lib/oaut
 import { fetchGoogleEvents } from '@/lib/google-calendar';
 import { acquireMicrosoftToken } from '@/lib/msal';
 import { fetchMicrosoftEvents } from '@/lib/microsoft-calendar';
-import { CATEGORY_OPTIONS } from '@/lib/gif-catalog';
-import type { BusyBlock, CalendarCategory, CalendarSource } from '@/types';
+import type { BusyBlock } from '@/types';
 
 interface PendingImport {
   blocks: BusyBlock[];
@@ -25,10 +24,6 @@ export default function ConnectPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-
-  // undefined = not yet shown, null = user skipped, CalendarCategory = chosen
-  const [pendingCategory, setPendingCategory] = useState<CalendarCategory | null | undefined>(undefined);
-  const [selectedCategory, setSelectedCategory] = useState<CalendarCategory | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -110,25 +105,14 @@ export default function ConnectPage() {
     }
   }
 
-  function handleConfirm(blocks: BusyBlock[]) {
-    const source: CalendarSource = {
-      id: crypto.randomUUID(),
-      label: pending!.source,
-      category: pendingCategory ?? null,
-      addedAt: new Date().toISOString(),
-    };
-    const taggedBlocks = blocks.map((b) => ({ ...b, sourceId: source.id }));
-    dispatch({ type: 'IMPORT_CALENDAR', source, blocks: taggedBlocks });
+  function handleConfirm(blocks: import('@/types').BusyBlock[]) {
+    dispatch({ type: 'ADD_BLOCKS', blocks });
     setPending(null);
-    setPendingCategory(undefined);
-    setSelectedCategory(null);
     router.push('/availability');
   }
 
   function handleCancel() {
     setPending(null);
-    setPendingCategory(undefined);
-    setSelectedCategory(null);
   }
 
   return (
@@ -228,42 +212,7 @@ export default function ConnectPage() {
         </Link>
       </p>
 
-      {/* Category picker — shown when import resolved but category not yet chosen */}
-      {pending && pendingCategory === undefined && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <h2 className="text-lg font-semibold mb-1">What kind of calendar is this?</h2>
-            <p className="text-sm text-gray-500 mb-5">{pending.source}</p>
-            <div className="grid grid-cols-3 gap-2 mb-6">
-              {CATEGORY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setSelectedCategory(opt.value)}
-                  className={`flex flex-col items-center gap-1 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                    selectedCategory === opt.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="text-2xl">{opt.emoji}</span>
-                  <span>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setPendingCategory(selectedCategory)}
-                className="bg-blue-600 text-white rounded-lg px-5 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
-              >
-                {selectedCategory !== null ? 'Continue →' : 'Skip'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Anonymisation preview — shown after category is chosen or skipped */}
-      {pending && pendingCategory !== undefined && (
+      {pending && (
         <AnonymisationPreview
           blocks={pending.blocks}
           source={pending.source}
