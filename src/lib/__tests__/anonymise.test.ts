@@ -43,4 +43,14 @@ describe('anonymiseEvents', () => {
     expect(result[0].allDay).toBe(true);
     expect(result[0].busy).toBe(true);
   });
+
+  it('returns empty array for null/undefined input', () => {
+    expect(anonymiseEvents(null as any)).toEqual([]);
+    expect(anonymiseEvents(undefined as any)).toEqual([]);
+  });
+
+  it('throws for invalid date strings', () => {
+    const raw = [{ start: 'not-a-date', end: '2026-03-10T10:00:00Z', status: 'busy', allDay: false }];
+    expect(() => anonymiseEvents(raw)).toThrow('Invalid date string');
+  });
 });
