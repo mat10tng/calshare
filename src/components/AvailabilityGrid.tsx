@@ -77,7 +77,7 @@ function gridToBlocks(
 }
 
 export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: Props) {
-  const dates = getDates(fromDate, toDate);
+  const dates = useMemo(() => getDates(fromDate, toDate), [fromDate, toDate]);
   const [hovered, setHovered] = useState<{ row: number; col: number } | null>(null);
   const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -107,17 +107,22 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
       const timeCell = table.querySelector('tbody tr td:first-child');
       const firstDataCell = table.querySelector('tbody tr td:nth-child(2)');
       if (!thead || !firstDataRow || !timeCell || !firstDataCell) return;
-      setCellMetrics({
-        headerH: thead.getBoundingClientRect().height,
-        rowH: firstDataRow.getBoundingClientRect().height,
-        timeW: timeCell.getBoundingClientRect().width,
-        colW: firstDataCell.getBoundingClientRect().width,
+      const headerH = thead.getBoundingClientRect().height;
+      const rowH = firstDataRow.getBoundingClientRect().height;
+      const timeW = timeCell.getBoundingClientRect().width;
+      const colW = firstDataCell.getBoundingClientRect().width;
+      setCellMetrics((prev) => {
+        if (prev && prev.headerH === headerH && prev.rowH === rowH && prev.timeW === timeW && prev.colW === colW) {
+          return prev; // no change, avoid re-render
+        }
+        return { headerH, rowH, timeW, colW };
       });
     }
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [dates]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Find the single largest qualifying busy rectangle
   const gifRect = useMemo(() => {
