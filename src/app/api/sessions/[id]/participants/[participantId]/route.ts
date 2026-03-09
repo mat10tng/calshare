@@ -1,18 +1,6 @@
 import { NextResponse } from 'next/server';
-import { kv, getSession } from '@/lib/session';
+import { kv, getSession, ISO_RE, sanitiseBlocks } from '@/lib/session';
 import type { BusyBlock, Session } from '@/types';
-
-const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/;
-
-function sanitiseBlocks(blocks: BusyBlock[]): BusyBlock[] {
-  return blocks.map(b => ({
-    start: String(b.start),
-    end: String(b.end),
-    busy: Boolean(b.busy),
-    allDay: Boolean(b.allDay),
-    ...(b.title ? { title: String(b.title).slice(0, 200) } : {}),
-  }));
-}
 
 export async function PATCH(
   req: Request,

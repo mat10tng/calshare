@@ -45,3 +45,15 @@ export async function verifyOrganizerToken(sessionId: string, token: string): Pr
 export async function getSession(sessionId: string): Promise<Session | null> {
   return kv.get<Session>(`session:${sessionId}`);
 }
+
+export const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/;
+
+export function sanitiseBlocks(blocks: import('@/types').BusyBlock[]): import('@/types').BusyBlock[] {
+  return blocks.map(b => ({
+    start: String(b.start),
+    end: String(b.end),
+    busy: Boolean(b.busy),
+    allDay: Boolean(b.allDay),
+    ...(b.title ? { title: String(b.title).slice(0, 200) } : {}),
+  }));
+}

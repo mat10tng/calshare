@@ -56,7 +56,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         groups: state.groups.some(g => g.sessionId === action.group.sessionId)
-          ? state.groups.map(g => g.sessionId === action.group.sessionId ? action.group : g)
+          ? state.groups // already exists — no-op (preserve user's rename)
           : [...state.groups, action.group],
       };
     case 'UPDATE_GROUP':
