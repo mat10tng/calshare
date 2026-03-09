@@ -14,17 +14,23 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
 
   useEffect(() => {
     params.then(async (p) => {
-      setSessionId(p.id);
-      const res = await fetch(`/api/sessions/${p.id}/public`);
-      if (!res.ok) { setNotFound(true); setLoading(false); return; }
-      const data = await res.json();
-      setBlocks(data.blocks);
-      setLookAheadDays(data.lookAheadDays);
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/sessions/${p.id}/public`);
+        if (!res.ok) { setNotFound(true); return; }
+        const data = await res.json();
+        setSessionId(data.sessionId);   // set from API response, not from URL param
+        setBlocks(data.blocks);
+        setLookAheadDays(data.lookAheadDays);
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
     });
   }, [params]);
 
   const now = new Date().toISOString().split('T')[0];
+  // lookAheadDays is only used in the success branch; default 14 is fine as placeholder
   const until = new Date(Date.now() + lookAheadDays * 86_400_000).toISOString().split('T')[0];
 
   return (
