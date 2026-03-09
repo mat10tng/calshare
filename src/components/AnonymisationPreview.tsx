@@ -54,7 +54,7 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
       <div
         role="dialog"
         aria-modal="true"
@@ -62,13 +62,13 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
         className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6"
       >
         <h2 id="anon-preview-title" className="text-xl font-semibold mb-1">Your calendar data has been anonymised</h2>
-        <p className="text-sm text-gray-500 mb-5">Source: {source}</p>
+        <p className="text-sm text-stone-400 mb-5">Source: {source}</p>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <p className="text-sm font-medium text-red-600 mb-2">What we REMOVED</p>
+            <p className="text-sm font-medium text-stone-500 mb-2">What we REMOVED</p>
             {removedItems.map(item => (
-              <p key={item} className="text-sm text-gray-600 flex items-center gap-1">
+              <p key={item} className="text-sm text-stone-500 flex items-center gap-1">
                 <span className="text-red-400">✕</span> {item}
               </p>
             ))}
@@ -76,7 +76,7 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
           <div>
             <p className="text-sm font-medium text-green-600 mb-2">What we KEPT</p>
             {keptItems.map(item => (
-              <p key={item} className="text-sm text-gray-600 flex items-center gap-1">
+              <p key={item} className="text-sm text-stone-500 flex items-center gap-1">
                 <span className="text-green-500">✓</span> {item}
               </p>
             ))}
@@ -84,20 +84,20 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
         </div>
 
         {/* Detail opt-in */}
-        <div className="border rounded-lg p-3 mb-4 bg-gray-50">
-          <p className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Optional details</p>
+        <div className="border rounded-lg p-3 mb-4 bg-stone-50">
+          <p className="text-xs font-medium text-stone-500 mb-2 uppercase tracking-wide">Optional details</p>
           <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={includeTitle}
               onChange={(e) => setIncludeTitle(e.target.checked)}
-              className="mt-0.5 accent-blue-600"
+              className="mt-0.5 accent-stone-800"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-stone-600">
               Include event titles
               {hasTitles
-                ? <span className="text-gray-400 text-xs ml-1">(found in your calendar)</span>
-                : <span className="text-gray-400 text-xs ml-1">(none found in this calendar)</span>
+                ? <span className="text-stone-400 text-xs ml-1">(found in your calendar)</span>
+                : <span className="text-stone-400 text-xs ml-1">(none found in this calendar)</span>
               }
             </span>
           </label>
@@ -108,33 +108,33 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
           )}
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-3 mb-5">
-          <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
+        <div className="bg-stone-50 rounded-lg p-3 mb-5">
+          <p className="text-xs font-medium text-stone-400 mb-2 uppercase tracking-wide">
             Preview — this is ALL we see ({blocks.length} block{blocks.length !== 1 ? 's' : ''})
           </p>
           {blocks.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">No busy blocks found in this calendar.</p>
+            <p className="text-xs text-stone-400 italic">No busy blocks found in this calendar.</p>
           ) : (
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {preview.map((b, i) => (
-                <div key={i} className="text-xs font-mono text-gray-700">
+                <div key={i} className="text-xs font-mono text-stone-600">
                   {b.allDay
                     ? `${b.start}  (all day)  ${b.busy ? 'busy' : 'free'}`
                     : `${formatTime(b.start)} → ${formatEnd(b.end)}  ${b.busy ? 'busy' : 'free'}`
                   }
                   {includeTitle && b.title && (
-                    <span className="text-blue-600 ml-2">&quot;{b.title}&quot;</span>
+                    <span className="text-stone-600 ml-2">&quot;{b.title}&quot;</span>
                   )}
                 </div>
               ))}
               {blocks.length > 8 && (
-                <p className="text-xs text-gray-400 italic">… and {blocks.length - 8} more blocks</p>
+                <p className="text-xs text-stone-400 italic">… and {blocks.length - 8} more blocks</p>
               )}
             </div>
           )}
         </div>
 
-        <p className="text-xs text-gray-500 mb-5">
+        <p className="text-xs text-stone-400 mb-5">
           {includeTitle
             ? 'Event titles will be stored locally and included when sharing with a session.'
             : 'Raw event data has been discarded and is never stored or transmitted.'
@@ -145,13 +145,13 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
           <button
             onClick={handleConfirm}
             autoFocus
-            className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="flex-1 bg-stone-800 text-white rounded-lg py-2 text-sm font-medium hover:bg-stone-700 transition-colors"
           >
             Continue
           </button>
           <button
             onClick={onCancel}
-            className="flex-1 border border-gray-300 rounded-lg py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-stone-200 rounded-lg py-2 text-sm font-medium hover:bg-stone-50 transition-colors"
           >
             Cancel &amp; disconnect
           </button>

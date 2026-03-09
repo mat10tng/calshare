@@ -205,17 +205,17 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
     const busy = isEffectivelyBusy(row, col);
 
     if (inDragRect(row, col)) {
-      return `border border-blue-300 h-4 ${drag!.mode ? 'bg-red-400' : 'bg-green-300'}`;
+      return `border border-stone-300 h-4 ${drag!.mode ? 'bg-stone-300' : 'bg-sky-100'}`;
     }
 
     const isHoveredRow = !drag && hovered?.row === row;
     const isHoveredCol = !drag && hovered?.col === col;
 
-    if (isHoveredRow && isHoveredCol) return 'border border-blue-400 h-4 bg-blue-300';
+    if (isHoveredRow && isHoveredCol) return 'border border-stone-400 h-4 bg-stone-200';
     if (isHoveredRow || isHoveredCol) {
-      return `border border-blue-100 h-4 ${busy ? 'bg-red-300' : 'bg-green-200'}`;
+      return `border border-stone-200 h-4 ${busy ? 'bg-stone-200' : 'bg-sky-50'}`;
     }
-    return `border border-gray-100 h-4 ${busy ? 'bg-red-200' : 'bg-green-100'}`;
+    return `border border-stone-100 h-4 ${busy ? 'bg-stone-200/70' : 'bg-white'}`;
   }
 
   function handleCellMouseDown(row: number, col: number) {
@@ -258,12 +258,12 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
         >
           <thead>
             <tr>
-              <th className="w-12 text-right pr-2 text-gray-400 font-normal" />
+              <th className="w-12 text-right pr-2 text-stone-400 font-normal" />
               {dates.map((d, ci) => (
                 <th
                   key={d}
                   className={`px-1 py-1 font-medium min-w-[36px] text-center ${
-                    hovered?.col === ci && !drag ? 'text-blue-600' : 'text-gray-500'
+                    hovered?.col === ci && !drag ? 'text-stone-600' : 'text-stone-400'
                   }`}
                 >
                   {d.slice(5)}
@@ -276,7 +276,7 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
               <tr key={hour}>
                 <td
                   className={`text-right pr-2 py-0 leading-none ${
-                    hovered?.row === ri && !drag ? 'text-blue-600 font-semibold' : 'text-gray-400'
+                    hovered?.row === ri && !drag ? 'text-stone-600 font-semibold' : 'text-stone-400'
                   }`}
                 >
                   {String(hour).padStart(2, '0')}:00
@@ -298,12 +298,12 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
         </table>
         {gifOverlays}
       </div>
-      <div className="flex gap-4 mt-3 text-xs text-gray-500">
+      <div className="flex gap-4 mt-3 text-xs text-stone-400">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-red-200 inline-block" /> Busy
+          <span className="w-3 h-3 rounded-sm bg-stone-200 inline-block" /> Busy
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-green-100 inline-block" /> Free
+          <span className="w-3 h-3 rounded-sm bg-white border border-stone-100 inline-block" /> Free
         </span>
         {onBlocksChange && (
           <span className="ml-auto italic">Drag to toggle busy / free</span>

@@ -61,8 +61,8 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
               ) : (
                 <span className="flex-1 text-sm font-medium">{group.name}</span>
               )}
-              <span className="text-xs text-gray-400 capitalize">{group.role}</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-stone-400 capitalize">{group.role}</span>
+              <span className="text-xs text-stone-400">
                 {new Date(group.joinedAt).toLocaleDateString()}
               </span>
             </div>
@@ -70,34 +70,34 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
             <div className="flex gap-2 flex-wrap">
               <Link
                 href={`/sessions/${group.sessionId}`}
-                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors"
+                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
               >
                 Open
               </Link>
               <button
                 onClick={() => copyLink(group.sessionId)}
-                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors"
+                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
               >
                 {copiedId === group.sessionId ? '✓ Copied' : 'Copy link'}
               </button>
               <button
                 onClick={() => startRename(group)}
-                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors"
+                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
               >
                 Rename
               </button>
               {leavingId === group.sessionId ? (
                 <>
-                  <span className="text-xs text-gray-500 self-center">Remove from list?</span>
+                  <span className="text-xs text-stone-400 self-center">Remove from list?</span>
                   <button
                     onClick={() => { onLeave(group.sessionId); setLeavingId(null); }}
-                    className="text-xs border border-red-200 text-red-600 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-colors"
+                    className="text-xs border border-stone-300 text-stone-500 rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
                   >
                     Yes, remove
                   </button>
                   <button
                     onClick={() => setLeavingId(null)}
-                    className="text-xs border rounded-lg px-2.5 py-1 hover:bg-gray-50 transition-colors"
+                    className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
                   >
                     Cancel
                   </button>
@@ -105,7 +105,7 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
               ) : (
                 <button
                   onClick={() => setLeavingId(group.sessionId)}
-                  className="text-xs border border-red-200 text-red-600 rounded-lg px-2.5 py-1 hover:bg-red-50 transition-colors"
+                  className="text-xs border border-stone-300 text-stone-500 rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
                 >
                   Leave
                 </button>

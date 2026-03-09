@@ -42,7 +42,7 @@ export default function PreferencesPage() {
     <main className="max-w-xl mx-auto py-12 px-4">
       <button
         onClick={() => router.back()}
-        className="text-sm text-blue-600 hover:underline mb-6 flex items-center gap-1"
+        className="text-sm text-stone-600 hover:underline mb-6 flex items-center gap-1"
       >
         ← Back
       </button>
@@ -73,7 +73,7 @@ export default function PreferencesPage() {
                     onChange={(e) => updateHours(day, 'start', e.target.value)}
                     className="border rounded px-2 py-1 text-sm"
                   />
-                  <span className="text-gray-400 text-sm">to</span>
+                  <span className="text-stone-400 text-sm">to</span>
                   <input
                     type="time"
                     value={prefs.workingHours[day]!.end}
@@ -90,7 +90,7 @@ export default function PreferencesPage() {
       {/* Buffer time */}
       <section className="mb-8">
         <h2 className="text-base font-semibold mb-2">Buffer between meetings</h2>
-        <p className="text-sm text-gray-500 mb-3">
+        <p className="text-sm text-stone-400 mb-3">
           Adds a gap after each busy block before marking you as available.
         </p>
         <div className="flex items-center gap-4">
@@ -115,7 +115,7 @@ export default function PreferencesPage() {
       {/* Look-ahead window */}
       <section className="mb-8">
         <h2 className="text-base font-semibold mb-2">Look-ahead window</h2>
-        <p className="text-sm text-gray-500 mb-3">
+        <p className="text-sm text-stone-400 mb-3">
           How far ahead to show availability.
         </p>
         <select
@@ -136,7 +136,7 @@ export default function PreferencesPage() {
         </select>
       </section>
 
-      <p className="text-xs text-gray-400">Preferences are saved automatically to your browser.</p>
+      <p className="text-xs text-stone-400">Preferences are saved automatically to your browser.</p>
     </main>
   );
 }

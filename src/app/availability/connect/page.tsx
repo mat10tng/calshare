@@ -118,7 +118,7 @@ export default function ConnectPage() {
   return (
     <main className="max-w-xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-2">Connect your calendar</h1>
-      <p className="text-sm text-gray-500 mb-8">
+      <p className="text-sm text-stone-400 mb-8">
         Your calendar data is processed entirely in your browser. Event details are never stored or transmitted.
       </p>
 
@@ -130,7 +130,7 @@ export default function ConnectPage() {
             href="https://calendar.google.com/calendar/r/settings/export"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors"
           >
             <span className="text-lg">📅</span>
             <span>Export from Google Calendar →</span>
@@ -139,7 +139,7 @@ export default function ConnectPage() {
             href="https://outlook.live.com/calendar/0/options/calendar/SharedCalendars"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors"
           >
             <span className="text-lg">📧</span>
             <span>Export from Outlook.com (personal) →</span>
@@ -148,19 +148,19 @@ export default function ConnectPage() {
             href="https://outlook.office.com/calendar/0/options/calendar/SharedCalendars"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors"
           >
             <span className="text-lg">🏢</span>
             <span>Export from Microsoft 365 (work/school) →</span>
           </a>
         </div>
-        <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-300 rounded-xl px-4 py-10 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+        <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-stone-200 rounded-xl px-4 py-10 cursor-pointer hover:border-stone-300 hover:bg-stone-50 transition-colors">
           <span className="text-3xl">📂</span>
-          <span className="text-sm font-medium text-gray-700 text-center">
+          <span className="text-sm font-medium text-stone-600 text-center">
             {loading ? 'Processing…' : (
               <>
                 Drop your .ics or .zip file here<br />
-                <span className="text-gray-400 font-normal">or click to browse</span>
+                <span className="text-stone-400 font-normal">or click to browse</span>
               </>
             )}
           </span>
@@ -172,10 +172,10 @@ export default function ConnectPage() {
             disabled={loading}
           />
         </label>
-        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
-        <p className="text-sm text-gray-400 mt-2 text-center">
+        {error && <p className="text-sm text-stone-500 mt-2">{error}</p>}
+        <p className="text-sm text-stone-400 mt-2 text-center">
           Need step-by-step help?{' '}
-          <button onClick={() => setShowGuide(true)} className="text-blue-600 underline hover:text-blue-700">
+          <button onClick={() => setShowGuide(true)} className="text-stone-600 underline hover:text-stone-600">
             See export guide
           </button>
         </p>
@@ -183,9 +183,9 @@ export default function ConnectPage() {
 
       {/* Divider */}
       <div className="relative flex items-center mb-6">
-        <div className="flex-1 border-t border-gray-200" />
-        <span className="px-3 text-xs text-gray-400">or connect instantly</span>
-        <div className="flex-1 border-t border-gray-200" />
+        <div className="flex-1 border-t border-stone-200" />
+        <span className="px-3 text-xs text-stone-400">or connect instantly</span>
+        <div className="flex-1 border-t border-stone-200" />
       </div>
 
       {/* Secondary: OAuth */}
@@ -194,7 +194,7 @@ export default function ConnectPage() {
           <button
             onClick={handleGoogleConnect}
             disabled={loading}
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">📅</span>
             <span>Continue with Google</span>
@@ -202,7 +202,7 @@ export default function ConnectPage() {
           <button
             onClick={handleMicrosoftConnect}
             disabled={loading}
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">📧</span>
             <span>Continue with Microsoft / Outlook</span>
@@ -210,9 +210,9 @@ export default function ConnectPage() {
         </div>
       </section>
 
-      <p className="text-center text-sm text-gray-400 mt-2">
+      <p className="text-center text-sm text-stone-400 mt-2">
         No calendar to share?{' '}
-        <Link href="/availability" className="text-blue-600 hover:underline">
+        <Link href="/availability" className="text-stone-600 hover:underline">
           Skip — I&apos;m available whenever
         </Link>
       </p>

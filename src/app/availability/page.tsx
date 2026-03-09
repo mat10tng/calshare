@@ -201,20 +201,20 @@ export default function AvailabilityPage() {
         <div className="flex gap-2">
           <Link
             href="/availability/connect"
-            className="text-sm border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+            className="text-sm border rounded-lg px-3 py-1.5 hover:bg-stone-50 transition-colors"
           >
             + Connect calendar
           </Link>
           <Link
             href="/availability/preferences"
-            className="text-sm border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+            className="text-sm border rounded-lg px-3 py-1.5 hover:bg-stone-50 transition-colors"
           >
             Preferences
           </Link>
           {state.blocks.length > 0 && (
             <button
               onClick={() => dispatch({ type: 'CLEAR_BLOCKS' })}
-              className="text-sm border border-red-200 text-red-600 rounded-lg px-3 py-1.5 hover:bg-red-50 transition-colors"
+              className="text-sm border border-stone-300 text-stone-500 rounded-lg px-3 py-1.5 hover:bg-stone-50 transition-colors"
             >
               Clear all
             </button>
@@ -223,16 +223,16 @@ export default function AvailabilityPage() {
       </div>
 
       {state.blocks.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-stone-400">
           <p className="text-4xl mb-4">📅</p>
-          <p className="text-lg font-medium text-gray-600 mb-2">No busy times — you&apos;re fully open</p>
+          <p className="text-lg font-medium text-stone-500 mb-2">No busy times — you&apos;re fully open</p>
           <p className="text-sm mb-6">
             Connect a calendar to import busy blocks, or schedule with a group as-is.
           </p>
           <div className="flex flex-col items-center gap-3">
             <Link
               href="/availability/connect"
-              className="bg-blue-600 text-white rounded-lg px-5 py-2.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="bg-stone-800 text-white rounded-lg px-5 py-2.5 text-sm font-medium hover:bg-stone-700 transition-colors"
             >
               Connect a calendar
             </Link>
@@ -240,7 +240,7 @@ export default function AvailabilityPage() {
         </div>
       ) : (
         <>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-stone-400 mb-4">
             Showing {state.blocks.filter((b) => b.busy).length} busy times across the next{' '}
             {state.preferences.lookAheadDays} days
           </p>
@@ -254,7 +254,7 @@ export default function AvailabilityPage() {
             <div className="mt-4">
               <Link
                 href={`/sessions/${state.sessionId}/view`}
-                className="border rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="border rounded-lg px-4 py-2 text-sm font-medium hover:bg-stone-50 transition-colors"
               >
                 Share my availability →
               </Link>
@@ -268,23 +268,23 @@ export default function AvailabilityPage() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => { setActivePanel(activePanel === 'create' ? null : 'create'); setCreateError(null); }}
-            className={`text-sm border rounded-lg px-3 py-1.5 transition-colors ${activePanel === 'create' ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-50'}`}
+            className={`text-sm border rounded-lg px-3 py-1.5 transition-colors ${activePanel === 'create' ? 'bg-stone-800 text-white border-stone-800' : 'hover:bg-stone-50'}`}
           >
             + Create a new group
           </button>
           <button
             onClick={() => { setActivePanel(activePanel === 'join' ? null : 'join'); setJoinError(null); }}
-            className={`text-sm border rounded-lg px-3 py-1.5 transition-colors ${activePanel === 'join' ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-50'}`}
+            className={`text-sm border rounded-lg px-3 py-1.5 transition-colors ${activePanel === 'join' ? 'bg-stone-800 text-white border-stone-800' : 'hover:bg-stone-50'}`}
           >
             Join a group
           </button>
         </div>
 
         {activePanel === 'create' && (
-          <div className="border rounded-xl p-4 mb-4 bg-gray-50">
+          <div className="border rounded-xl p-4 mb-4 bg-stone-50">
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">
-                Group name <span className="text-gray-400 font-normal">(optional)</span>
+                Group name <span className="text-stone-400 font-normal">(optional)</span>
               </label>
               <input
                 type="text"
@@ -308,18 +308,18 @@ export default function AvailabilityPage() {
                 className="border rounded-lg px-3 py-2 w-24 text-sm bg-white"
               />
             </div>
-            {createError && <p className="text-sm text-red-600 mb-3">{createError}</p>}
+            {createError && <p className="text-sm text-stone-500 mb-3">{createError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={handleCreate}
                 disabled={createLoading}
-                className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="bg-stone-800 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-stone-700 disabled:opacity-50 transition-colors"
               >
                 {createLoading ? 'Creating…' : 'Create session'}
               </button>
               <button
                 onClick={() => setActivePanel(null)}
-                className="border rounded-lg px-4 py-2 text-sm hover:bg-white transition-colors"
+                className="border rounded-lg px-4 py-2 text-sm hover:bg-stone-50 transition-colors"
               >
                 Cancel
               </button>
@@ -328,7 +328,7 @@ export default function AvailabilityPage() {
         )}
 
         {activePanel === 'join' && (
-          <div className="border rounded-xl p-4 mb-4 bg-gray-50">
+          <div className="border rounded-xl p-4 mb-4 bg-stone-50">
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">
                 Paste join link or session ID
@@ -341,18 +341,18 @@ export default function AvailabilityPage() {
                 className="border rounded-lg px-3 py-2 w-full text-sm bg-white"
               />
             </div>
-            {joinError && <p className="text-sm text-red-600 mb-3">{joinError}</p>}
+            {joinError && <p className="text-sm text-stone-500 mb-3">{joinError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={handleJoin}
                 disabled={joinLoading || !joinInput.trim()}
-                className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="bg-stone-800 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-stone-700 disabled:opacity-50 transition-colors"
               >
                 {joinLoading ? 'Joining…' : 'Join group'}
               </button>
               <button
                 onClick={() => setActivePanel(null)}
-                className="border rounded-lg px-4 py-2 text-sm hover:bg-white transition-colors"
+                className="border rounded-lg px-4 py-2 text-sm hover:bg-stone-50 transition-colors"
               >
                 Cancel
               </button>

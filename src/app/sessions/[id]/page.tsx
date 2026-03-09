@@ -72,14 +72,14 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
     <>
       <Nav />
       <main className="max-w-4xl mx-auto py-12 px-4">
-      <Link href="/availability" className="text-sm text-blue-600 hover:underline mb-6 flex items-center gap-1">
+      <Link href="/availability" className="text-sm text-stone-600 hover:underline mb-6 flex items-center gap-1">
         ← Back
       </Link>
 
       <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold mb-1">Group Session</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-stone-400">
             {participants.length} participant{participants.length !== 1 ? 's' : ''} contributed
             {quorum > 1 ? ` · showing slots where ≥${quorum} are free` : ''}
           </p>
@@ -87,7 +87,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Invite link */}
-      <div className="bg-gray-50 rounded-xl p-4 mb-8">
+      <div className="bg-stone-50 rounded-xl p-4 mb-8">
         <p className="text-sm font-semibold mb-3">Invite link — share this with your group</p>
         <div className="flex gap-2 items-stretch">
           <code className="flex-1 text-xs bg-white border rounded-lg px-3 py-2.5 break-all self-center">
@@ -95,7 +95,7 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
           </code>
           <button
             onClick={copyLink}
-            className="text-sm border rounded-lg px-4 py-2.5 hover:bg-white transition-colors whitespace-nowrap font-medium min-h-[44px]"
+            className="text-sm border rounded-lg px-4 py-2.5 hover:bg-stone-50 transition-colors whitespace-nowrap font-medium min-h-[44px]"
           >
             {copied ? '✓ Copied' : 'Copy link'}
           </button>
@@ -103,9 +103,9 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {loading ? (
-        <p className="text-gray-400 text-sm">Loading participant availability…</p>
+        <p className="text-stone-400 text-sm">Loading participant availability…</p>
       ) : participants.length === 0 ? (
-        <p className="text-gray-400 text-sm">Waiting for participants to join and submit their availability.</p>
+        <p className="text-stone-400 text-sm">Waiting for participants to join and submit their availability.</p>
       ) : (
         <>
           <h2 className="text-base font-semibold mb-3">

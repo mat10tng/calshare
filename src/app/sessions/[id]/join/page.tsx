@@ -126,25 +126,25 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         <main className="max-w-md mx-auto py-16 px-4 text-center">
           <p className="text-4xl mb-4">✅</p>
           <h1 className="text-2xl font-bold mb-3">Availability shared!</h1>
-          <p className="text-gray-600 text-sm mb-6">
+          <p className="text-stone-500 text-sm mb-6">
             Your free times have been added. The organiser can now see when everyone can meet.
             No event details were shared.
           </p>
           {personalUrl && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-              <p className="text-sm font-medium text-blue-800 mb-2">Your personal availability link:</p>
+            <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 text-left">
+              <p className="text-sm font-medium text-stone-700 mb-2">Your personal availability link:</p>
               <div className="flex gap-2">
                 <code className="flex-1 text-xs bg-white border rounded px-3 py-2 break-all">
                   {personalUrl}
                 </code>
                 <button
                   onClick={() => navigator.clipboard.writeText(personalUrl)}
-                  className="text-sm border rounded-lg px-3 py-2 hover:bg-white transition-colors whitespace-nowrap"
+                  className="text-sm border rounded-lg px-3 py-2 hover:bg-stone-50 transition-colors whitespace-nowrap"
                 >
                   Copy
                 </button>
               </div>
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-stone-600 mt-2">
                 Share this link so others can see your availability.
               </p>
             </div>
@@ -159,27 +159,27 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
       <Nav />
       <main className="max-w-4xl mx-auto py-12 px-4">
         <h1 className="text-2xl font-bold mb-3">You&apos;ve been invited to find a time together</h1>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-stone-500 mb-4">
           Add your free times and the organiser can see when everyone can meet —
           without seeing your calendar details.
         </p>
         {sessionInfo && (
-          <p className="text-xs text-gray-400 mb-4">Looking ahead {sessionInfo.lookAheadDays} days</p>
+          <p className="text-xs text-stone-400 mb-4">Looking ahead {sessionInfo.lookAheadDays} days</p>
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          <div className="bg-stone-50 border border-stone-300 rounded-lg p-3 mb-4 text-sm text-stone-600">
             {error}
           </div>
         )}
 
         <div className="flex justify-between items-center mb-3">
-          <p className="text-sm text-gray-600 font-medium">
+          <p className="text-sm text-stone-500 font-medium">
             Mark your busy times (drag to toggle):
           </p>
           <Link
             href={`/availability/connect?returnTo=/sessions/${sessionId}/join`}
-            className="text-sm border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+            className="text-sm border rounded-lg px-3 py-1.5 hover:bg-stone-50 transition-colors"
           >
             + Connect calendar
           </Link>
@@ -194,7 +194,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
 
         <div className="mt-4">
           <label className="block text-sm font-medium mb-1">
-            Name this group <span className="text-gray-400 font-normal">(optional)</span>
+            Name this group <span className="text-stone-400 font-normal">(optional)</span>
           </label>
           <input
             type="text"
@@ -209,12 +209,12 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         <button
           onClick={submitBlocks}
           disabled={submitting || !sessionId || !hydrated || (!sessionInfo && !error)}
-          className="mt-6 w-full bg-blue-600 text-white rounded-xl py-3 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="mt-6 w-full bg-stone-800 text-white rounded-xl py-3 font-medium text-sm hover:bg-stone-700 disabled:opacity-50 transition-colors"
         >
           {submitting ? 'Sharing…' : 'Share my free times'}
         </button>
 
-        <p className="text-center text-xs text-gray-400 mt-4">
+        <p className="text-center text-xs text-stone-400 mt-4">
           🔒 No account needed. No event details shared.
         </p>
       </main>

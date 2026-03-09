@@ -29,7 +29,7 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
   if (error) {
     return (
       <main className="max-w-md mx-auto py-16 px-4 text-center">
-        <p className="text-gray-400 text-sm">{error}</p>
+        <p className="text-stone-400 text-sm">{error}</p>
       </main>
     );
   }
@@ -37,7 +37,7 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
   if (!data) {
     return (
       <main className="max-w-md mx-auto py-16 px-4 text-center">
-        <p className="text-gray-400 text-sm">Loading…</p>
+        <p className="text-stone-400 text-sm">Loading…</p>
       </main>
     );
   }
@@ -51,7 +51,7 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
   return (
     <main className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-1">Availability</h1>
-      <p className="text-sm text-gray-500 mb-8">
+      <p className="text-sm text-stone-400 mb-8">
         Next {data.lookAheadDays} days · {busyCount} busy times (event details hidden)
       </p>
 
@@ -61,11 +61,11 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
         toDate={until}
       />
 
-      <div className="mt-10 pt-8 border-t border-gray-100 text-center">
-        <p className="text-sm text-gray-600 mb-3">Want to find a time together?</p>
+      <div className="mt-10 pt-8 border-t border-stone-100 text-center">
+        <p className="text-sm text-stone-500 mb-3">Want to find a time together?</p>
         <Link
           href="/sessions/new"
-          className="inline-block bg-blue-600 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-blue-700 transition-colors"
+          className="inline-block bg-stone-800 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-stone-700 transition-colors"
         >
           Create a group session →
         </Link>

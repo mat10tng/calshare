@@ -54,7 +54,7 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ics-guide-title"
@@ -67,13 +67,13 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
           <button
             onClick={onClose}
             aria-label="Close guide"
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            className="text-stone-400 hover:text-stone-500 text-xl leading-none"
           >
             ×
           </button>
         </div>
 
-        <p className="text-sm text-gray-600 mb-5">
+        <p className="text-sm text-stone-500 mb-5">
           No OAuth needed — export your calendar yourself and upload the file.
           Your raw event data never leaves your device.
         </p>
@@ -84,7 +84,7 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
               <button
                 key={key}
                 onClick={() => setProvider(key)}
-                className="flex-1 border rounded-lg p-4 hover:bg-gray-50 text-sm font-medium text-center transition-colors"
+                className="flex-1 border rounded-lg p-4 hover:bg-stone-50 text-sm font-medium text-center transition-colors"
               >
                 {PROVIDERS[key].label}
               </button>
@@ -94,7 +94,7 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
           <>
             <button
               onClick={() => setProvider(null)}
-              className="text-sm text-blue-600 hover:underline mb-4 flex items-center gap-1"
+              className="text-sm text-stone-600 hover:underline mb-4 flex items-center gap-1"
             >
               ← Back
             </button>
@@ -102,22 +102,22 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
               href={PROVIDERS[provider].exportUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-blue-700 transition-colors mb-5"
+              className="flex items-center justify-center gap-2 bg-stone-800 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-stone-700 transition-colors mb-5"
             >
               Open export page →
             </a>
             <ol className="space-y-2 mb-5">
               {PROVIDERS[provider].steps.map((step, i) => (
                 <li key={i} className="flex gap-3 text-sm">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-stone-100 text-stone-700 text-xs font-semibold flex items-center justify-center">
                     {i + 1}
                   </span>
-                  <span className="text-gray-700">{step}</span>
+                  <span className="text-stone-600">{step}</span>
                 </li>
               ))}
             </ol>
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-blue-300 rounded-lg px-4 py-4 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors">
-              <span className="text-sm font-medium text-blue-700">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-stone-200 rounded-lg px-4 py-4 cursor-pointer hover:border-stone-400 hover:bg-stone-50 transition-colors">
+              <span className="text-sm font-medium text-stone-700">
                 Upload your .ics file
               </span>
               <input

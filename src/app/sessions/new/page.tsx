@@ -63,18 +63,18 @@ export default function NewSessionPage() {
     <>
       <Nav />
       <main className="max-w-md mx-auto py-12 px-4">
-      <Link href="/availability" className="text-sm text-blue-600 hover:underline mb-6 flex items-center gap-1">
+      <Link href="/availability" className="text-sm text-stone-600 hover:underline mb-6 flex items-center gap-1">
         ← Back to availability
       </Link>
 
       <h1 className="text-2xl font-bold mb-2">New Group Session</h1>
-      <p className="text-sm text-gray-500 mb-8">
+      <p className="text-sm text-stone-400 mb-8">
         Create a scheduling session and share an invite link. Participants submit their anonymised availability — you see when everyone is free.
       </p>
 
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          Group name <span className="text-gray-400 font-normal">(optional)</span>
+          Group name <span className="text-stone-400 font-normal">(optional)</span>
         </label>
         <input
           type="text"
@@ -98,13 +98,13 @@ export default function NewSessionPage() {
           onChange={(e) => setQuorum(Math.max(1, Math.min(20, Number(e.target.value))))}
           className="border rounded-lg px-3 py-2 w-full text-base"
         />
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-stone-400 mt-1">
           Only show times where at least {quorum} {quorum !== 1 ? 'people are' : 'person is'} available.
         </p>
       </div>
 
       {state.blocks.length === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
+        <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 mb-4 text-sm text-stone-700">
           No calendar connected — you&apos;ll be counted as fully available.{' '}
           <Link href="/availability/connect" className="underline font-medium">
             Connect one →
@@ -112,12 +112,12 @@ export default function NewSessionPage() {
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-sm text-stone-500 mb-4">{error}</p>}
 
       <button
         onClick={handleCreate}
         disabled={loading}
-        className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        className="w-full bg-stone-800 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-stone-700 disabled:opacity-50 transition-colors"
       >
         {loading ? 'Creating session…' : 'Create session & get invite link'}
       </button>

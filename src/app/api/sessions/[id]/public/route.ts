@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const session = await getSession(id);
-  if (\!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  if (session == null) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
 
   const organizerBlocks = session.participants['__organizer__'] ?? [];
   return NextResponse.json({
