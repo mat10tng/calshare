@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
+import { Nav } from '@/components/Nav';
 
 export default function AvailabilityPage() {
   const { state, dispatch } = useApp();
@@ -14,7 +15,9 @@ export default function AvailabilityPage() {
     .split('T')[0];
 
   return (
-    <main className="max-w-5xl mx-auto py-12 px-4">
+    <>
+      <Nav />
+      <main className="max-w-5xl mx-auto py-12 px-4">
       <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold">Your Availability</h1>
         <div className="flex gap-2">
@@ -71,5 +74,6 @@ export default function AvailabilityPage() {
         </>
       )}
     </main>
+    </>
   );
 }

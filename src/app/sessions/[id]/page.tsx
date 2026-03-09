@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { mergeGroupAvailability } from '@/lib/merge';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import Link from 'next/link';
+import { Nav } from '@/components/Nav';
 import type { BusyBlock } from '@/types';
 
 interface Participant {
@@ -68,7 +69,9 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
     : [];
 
   return (
-    <main className="max-w-4xl mx-auto py-12 px-4">
+    <>
+      <Nav />
+      <main className="max-w-4xl mx-auto py-12 px-4">
       <Link href="/availability" className="text-sm text-blue-600 hover:underline mb-6 flex items-center gap-1">
         ← Back
       </Link>
@@ -117,5 +120,6 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
         </>
       )}
     </main>
+    </>
   );
 }

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import Link from 'next/link';
+import { Nav } from '@/components/Nav';
 
 export default function NewSessionPage() {
   const { state, dispatch } = useApp();
@@ -49,7 +50,9 @@ export default function NewSessionPage() {
   }
 
   return (
-    <main className="max-w-md mx-auto py-12 px-4">
+    <>
+      <Nav />
+      <main className="max-w-md mx-auto py-12 px-4">
       <Link href="/availability" className="text-sm text-blue-600 hover:underline mb-6 flex items-center gap-1">
         ← Back to availability
       </Link>
@@ -96,5 +99,6 @@ export default function NewSessionPage() {
         {loading ? 'Creating session…' : 'Create session & get invite link'}
       </button>
     </main>
+    </>
   );
 }
