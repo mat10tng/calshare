@@ -6,24 +6,28 @@ interface Props {
   onFileReady: (file: File) => void;
 }
 
-const STEPS = {
-  google: [
-    'Open Google Calendar at calendar.google.com',
-    'Click the gear icon (⚙) → Settings',
-    'In the left sidebar, click "Import & Export"',
-    'Under "Export", click Export — downloads a .zip file',
-    'Unzip the downloaded file to find your .ics files',
-    'Upload the .ics file using the button below',
-  ],
-  outlook: [
-    'Open Outlook and go to File → Open & Export → Import/Export',
-    'Select "Export to a file" → Next',
-    'Select "iCalendar Format (.ics)" → Next',
-    'Choose your calendar folder → Next',
-    'Choose a save location and click Finish',
-    'Upload the saved .ics file using the button below',
-  ],
-};
+const PROVIDERS = {
+  google: {
+    label: '📅 Google Calendar',
+    exportUrl: 'https://calendar.google.com/calendar/r/settings/export',
+    steps: [
+      'Click "Open export page →" below — it takes you straight there',
+      'Click the blue Export button — downloads a .zip file',
+      'Unzip the downloaded file to find your .ics files',
+      'Upload the .ics file using the button below',
+    ],
+  },
+  outlook: {
+    label: '📧 Outlook / Microsoft 365',
+    exportUrl: 'https://outlook.live.com/calendar/0/options/calendar/SharedCalendars',
+    steps: [
+      'Click "Open export page →" below',
+      'Under "Publish a calendar", choose your calendar and select "ICS" format',
+      'Click Publish, then copy the ICS link and open it to download',
+      'Upload the downloaded .ics file using the button below',
+    ],
+  },
+} as const;
 
 export function IcsGuide({ onClose, onFileReady }: Props) {
   const [provider, setProvider] = useState<'google' | 'outlook' | null>(null);
@@ -64,18 +68,15 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
 
         {!provider ? (
           <div className="flex gap-3">
-            <button
-              onClick={() => setProvider('google')}
-              className="flex-1 border rounded-lg p-4 hover:bg-gray-50 text-sm font-medium text-center transition-colors"
-            >
-              📅 Google Calendar
-            </button>
-            <button
-              onClick={() => setProvider('outlook')}
-              className="flex-1 border rounded-lg p-4 hover:bg-gray-50 text-sm font-medium text-center transition-colors"
-            >
-              📧 Outlook / Microsoft 365
-            </button>
+            {(Object.keys(PROVIDERS) as Array<keyof typeof PROVIDERS>).map((key) => (
+              <button
+                key={key}
+                onClick={() => setProvider(key)}
+                className="flex-1 border rounded-lg p-4 hover:bg-gray-50 text-sm font-medium text-center transition-colors"
+              >
+                {PROVIDERS[key].label}
+              </button>
+            ))}
           </div>
         ) : (
           <>
@@ -85,8 +86,16 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
             >
               ← Back
             </button>
+            <a
+              href={PROVIDERS[provider].exportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-blue-700 transition-colors mb-5"
+            >
+              Open export page →
+            </a>
             <ol className="space-y-2 mb-5">
-              {STEPS[provider].map((step, i) => (
+              {PROVIDERS[provider].steps.map((step, i) => (
                 <li key={i} className="flex gap-3 text-sm">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
                     {i + 1}
