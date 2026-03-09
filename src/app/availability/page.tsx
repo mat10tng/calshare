@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Nav } from '@/components/Nav';
+import { GroupsList } from '@/components/GroupsList';
 
 export default function AvailabilityPage() {
   const { state, dispatch, hydrated } = useApp();
@@ -50,12 +51,51 @@ export default function AvailabilityPage() {
     return () => clearTimeout(timer);
   }, [state.blocks, state.sessionId, state.organizerToken]);
 
+  // Sync blocks to all joined groups (debounced 1 s)
+  useEffect(() => {
+    if (state.groups.length === 0) return;
+    const timer = setTimeout(() => {
+      for (const group of state.groups) {
+        if (group.role === 'organizer') {
+          const token = state.organizerTokens[group.sessionId];
+          if (!token) continue;
+          fetch(`/api/sessions/${group.sessionId}/participants`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ blocks: state.blocks }),
+          }).catch(() => {/* non-fatal */});
+        } else if (group.role === 'participant' && group.participantId) {
+          fetch(`/api/sessions/${group.sessionId}/participants/${group.participantId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              participantToken: group.participantId,
+              blocks: state.blocks,
+            }),
+          }).catch(() => {/* non-fatal */});
+        }
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [state.blocks, state.groups, state.organizerTokens]);
+
   const now = new Date().toISOString().split('T')[0];
   const until = new Date(
     Date.now() + state.preferences.lookAheadDays * 86_400_000,
   )
     .toISOString()
     .split('T')[0];
+
+  function handleRename(sessionId: string, name: string) {
+    dispatch({ type: 'UPDATE_GROUP', sessionId, changes: { name } });
+  }
+
+  function handleLeave(sessionId: string) {
+    dispatch({ type: 'REMOVE_GROUP', sessionId });
+  }
 
   return (
     <>
@@ -139,6 +179,11 @@ export default function AvailabilityPage() {
           </div>
         </>
       )}
+      <GroupsList
+        groups={state.groups}
+        onRename={handleRename}
+        onLeave={handleLeave}
+      />
     </main>
     </>
   );
