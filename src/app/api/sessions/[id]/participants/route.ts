@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
-import { getSession, generateToken } from '@/lib/session';
+import { kv, getSession, generateToken } from '@/lib/session';
 import type { BusyBlock, Session } from '@/types';
 
 export async function POST(

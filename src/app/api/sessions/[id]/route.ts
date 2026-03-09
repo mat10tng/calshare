@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
-import { verifyOrganizerToken } from '@/lib/session';
+import { kv, verifyOrganizerToken } from '@/lib/session';
 
 export async function GET(
   req: Request,
