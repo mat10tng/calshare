@@ -1,4 +1,5 @@
 import ICAL from 'ical.js';
+import { unzipSync, strFromU8 } from 'fflate';
 import { anonymiseEvents } from './anonymise';
 import type { BusyBlock } from '@/types';
 
@@ -29,4 +30,15 @@ export function parseIcsFile(content: string): BusyBlock[] {
   });
 
   return anonymiseEvents(raw);
+}
+
+export async function parseZipFile(buffer: ArrayBuffer): Promise<BusyBlock[]> {
+  const files = unzipSync(new Uint8Array(buffer));
+  const icsEntries = Object.entries(files).filter(([name]) => name.endsWith('.ics'));
+
+  if (icsEntries.length === 0) {
+    throw new Error('No .ics files found in zip');
+  }
+
+  return icsEntries.flatMap(([, data]) => parseIcsFile(strFromU8(data)));
 }

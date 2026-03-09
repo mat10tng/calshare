@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { AnonymisationPreview } from '@/components/AnonymisationPreview';
 import { IcsGuide } from '@/components/IcsGuide';
-import { parseIcsFile } from '@/lib/ics-parser';
+import { parseIcsFile, parseZipFile } from '@/lib/ics-parser';
 import { generatePKCE, buildGoogleAuthUrl, exchangeGoogleCode } from '@/lib/oauth';
 import { fetchGoogleEvents } from '@/lib/google-calendar';
 import { acquireMicrosoftToken } from '@/lib/msal';
@@ -90,11 +90,15 @@ export default function ConnectPage() {
     setLoading(true);
     setError(null);
     try {
-      const content = await file.text();
-      const blocks = parseIcsFile(content);
+      let blocks;
+      if (file.name.endsWith('.zip')) {
+        blocks = await parseZipFile(await file.arrayBuffer());
+      } else {
+        blocks = parseIcsFile(await file.text());
+      }
       setPending({ blocks, source: file.name });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to parse .ics file.');
+      setError(err instanceof Error ? err.message : 'Failed to parse file.');
     } finally {
       setLoading(false);
     }
@@ -122,7 +126,7 @@ export default function ConnectPage() {
       <section className="mb-8">
         <h2 className="text-base font-semibold mb-1">Import from file</h2>
         <p className="text-sm text-gray-500 mb-3">
-          Export your calendar as a <code className="bg-gray-100 px-1 rounded">.ics</code> file and upload it.
+          Export your calendar and upload the <code className="bg-gray-100 px-1 rounded">.ics</code> or <code className="bg-gray-100 px-1 rounded">.zip</code> file directly.
           Nothing is sent to any server.
         </p>
         <div className="flex flex-col gap-2 mb-3">
@@ -147,11 +151,11 @@ export default function ConnectPage() {
         </div>
         <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
           <span className="text-sm font-medium text-gray-700">
-            {loading ? 'Processing…' : 'Click to upload .ics file'}
+            {loading ? 'Processing…' : 'Click to upload .ics or .zip file'}
           </span>
           <input
             type="file"
-            accept=".ics"
+            accept=".ics,.zip"
             className="sr-only"
             onChange={handleIcsUpload}
             disabled={loading}

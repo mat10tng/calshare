@@ -15,6 +15,7 @@
     "@react-oauth/google": "^0.13.4",
     "@upstash/redis": "^1.36.4",
     "bcryptjs": "^3.0.3",
+    "fflate": "^0.8.2",
     "ical.js": "^2.2.1",
     "ics": "^3.8.1",
     "jspdf": "^4.2.0",
