@@ -52,9 +52,9 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
     return (
       <main className="max-w-md mx-auto py-16 px-4 text-center">
         <p className="text-4xl mb-4">✅</p>
-        <h1 className="text-2xl font-bold mb-3">Availability submitted!</h1>
+        <h1 className="text-2xl font-bold mb-3">Availability shared!</h1>
         <p className="text-gray-600 text-sm">
-          Your anonymised availability has been added. The organiser can now see common free slots.
+          Your free times have been added. The organiser can now see when everyone can meet.
           No event details were shared.
         </p>
       </main>
