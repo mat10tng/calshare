@@ -8,7 +8,7 @@ export function Nav() {
 
   return (
     <nav className="border-b px-4 py-3 flex items-center justify-between">
-      <Link href="/" className="font-bold text-blue-600 text-lg flex items-baseline gap-1.5">
+      <Link href="/availability" className="font-bold text-blue-600 text-lg flex items-baseline gap-1.5">
         CalShare
         <span className="text-xs font-normal text-gray-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
       </Link>
