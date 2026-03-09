@@ -8,6 +8,7 @@ import { Nav } from '@/components/Nav';
 export default function NewSessionPage() {
   const { state, dispatch } = useApp();
   const router = useRouter();
+  const [groupName, setGroupName] = useState('');
   const [quorum, setQuorum] = useState(2);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +29,18 @@ export default function NewSessionPage() {
       const { sessionId, organizerToken } = await res.json();
 
       dispatch({ type: 'SET_SESSION', sessionId, organizerToken });
+
+      const resolvedName = groupName.trim() || `Group ${sessionId}`;
+      dispatch({
+        type: 'ADD_GROUP',
+        group: {
+          sessionId,
+          role: 'organizer',
+          name: resolvedName,
+          joinedAt: new Date().toISOString(),
+        },
+      });
+      dispatch({ type: 'SET_ORGANIZER_TOKEN', sessionId, token: organizerToken });
 
       // Submit own blocks immediately
       await fetch(`/api/sessions/${sessionId}/participants`, {
@@ -58,6 +71,20 @@ export default function NewSessionPage() {
       <p className="text-sm text-gray-500 mb-8">
         Create a scheduling session and share an invite link. Participants submit their anonymised availability — you see when everyone is free.
       </p>
+
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2">
+          Group name <span className="text-gray-400 font-normal">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={groupName}
+          onChange={(e) => setGroupName(e.target.value)}
+          placeholder="e.g. Team standup sync"
+          className="border rounded-lg px-3 py-2 w-full text-base"
+          maxLength={80}
+        />
+      </div>
 
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">

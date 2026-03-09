@@ -47,3 +47,11 @@ export interface Session {
 }
 
 export type IngestionPath = 'oauth-google' | 'oauth-microsoft' | 'ics-upload' | 'ics-guide';
+
+export interface GroupEntry {
+  sessionId: string;
+  role: 'organizer' | 'participant';
+  participantId?: string;   // participants only — used for block updates
+  name: string;             // user's local label, editable anytime
+  joinedAt: string;         // ISO timestamp
+}

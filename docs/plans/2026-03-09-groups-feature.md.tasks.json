@@ -1,0 +1,14 @@
+{
+  "planPath": "docs/plans/2026-03-09-groups-feature.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 1: Add GroupEntry type", "status": "pending"},
+    {"id": 1, "subject": "Task 2: Update AppContext with groups state", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 3: New PATCH participant endpoint", "status": "pending", "blockedBy": [0]},
+    {"id": 3, "subject": "Task 4: Create GroupsList component", "status": "pending", "blockedBy": [1]},
+    {"id": 4, "subject": "Task 5: Update /sessions/new to track organizer groups", "status": "pending", "blockedBy": [1]},
+    {"id": 5, "subject": "Task 6: Update /sessions/[id]/join to track participant groups", "status": "pending", "blockedBy": [1]},
+    {"id": 6, "subject": "Task 7: Add auto-sync and render GroupsList on /availability", "status": "pending", "blockedBy": [2, 3, 4, 5]},
+    {"id": 7, "subject": "Task 8: Smoke test end-to-end", "status": "pending", "blockedBy": [6]}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00.000Z"
+}
