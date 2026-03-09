@@ -121,13 +121,21 @@ export default function AvailabilityPage() {
             toDate={until}
             onBlocksChange={(newBlocks) => dispatch({ type: 'SET_BLOCKS', blocks: newBlocks })}
           />
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/sessions/new"
               className="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
             >
-              Schedule with a group
+              Plan with a group
             </Link>
+            {state.sessionId && (
+              <Link
+                href={`/sessions/${state.sessionId}/view`}
+                className="border rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Share my availability →
+              </Link>
+            )}
           </div>
         </>
       )}
