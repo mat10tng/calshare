@@ -24,7 +24,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
   }, [params]);
 
   async function submitBlocks() {
-    if (!sessionId || state.blocks.length === 0) return;
+    if (!sessionId) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -77,17 +77,17 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
       )}
 
       {state.blocks.length === 0 ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <p className="text-sm font-medium text-amber-800 mb-2">Connect your calendar first</p>
-          <p className="text-sm text-amber-700 mb-3">
-            You need to add your availability before you can join this session.
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm font-medium text-blue-800">No calendar connected — fully available</p>
+          <p className="text-sm text-blue-700 mb-2">
+            You&apos;ll be submitted as having no busy times.{' '}
+            <Link
+              href={`/availability/connect?returnTo=/sessions/${sessionId}/join`}
+              className="underline font-medium"
+            >
+              Connect a calendar →
+            </Link>
           </p>
-          <Link
-            href={`/availability/connect?returnTo=/sessions/${sessionId}/join`}
-            className="text-sm text-blue-600 underline font-medium"
-          >
-            Connect calendar →
-          </Link>
         </div>
       ) : (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
@@ -101,7 +101,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
 
       <button
         onClick={submitBlocks}
-        disabled={submitting || state.blocks.length === 0}
+        disabled={submitting}
         className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
       >
         {submitting ? 'Submitting…' : 'Submit my availability'}

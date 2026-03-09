@@ -47,14 +47,24 @@ export default function AvailabilityPage() {
       {state.blocks.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <p className="text-4xl mb-4">📅</p>
-          <p className="text-lg font-medium text-gray-600 mb-2">No calendars connected yet</p>
-          <p className="text-sm mb-6">Connect a calendar to see your free/busy availability.</p>
-          <Link
-            href="/availability/connect"
-            className="bg-blue-600 text-white rounded-lg px-5 py-2.5 text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Connect your first calendar
-          </Link>
+          <p className="text-lg font-medium text-gray-600 mb-2">No busy times — you&apos;re fully open</p>
+          <p className="text-sm mb-6">
+            Connect a calendar to import busy blocks, or schedule with a group as-is.
+          </p>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/availability/connect"
+              className="bg-blue-600 text-white rounded-lg px-5 py-2.5 text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Connect a calendar
+            </Link>
+            <Link
+              href="/sessions/new"
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              Schedule with open availability →
+            </Link>
+          </div>
         </div>
       ) : (
         <>
@@ -62,7 +72,12 @@ export default function AvailabilityPage() {
             Showing {state.blocks.filter((b) => b.busy).length} busy blocks across{' '}
             {state.preferences.lookAheadDays} days
           </p>
-          <AvailabilityGrid blocks={state.blocks} fromDate={now} toDate={until} />
+          <AvailabilityGrid
+            blocks={state.blocks}
+            fromDate={now}
+            toDate={until}
+            onBlocksChange={(newBlocks) => dispatch({ type: 'SET_BLOCKS', blocks: newBlocks })}
+          />
           <div className="mt-6 flex gap-3">
             <Link
               href="/sessions/new"

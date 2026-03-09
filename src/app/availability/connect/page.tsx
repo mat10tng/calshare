@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { AnonymisationPreview } from '@/components/AnonymisationPreview';
 import { IcsGuide } from '@/components/IcsGuide';
@@ -204,6 +205,13 @@ export default function ConnectPage() {
           </button>
         </div>
       </section>
+
+      <p className="text-center text-sm text-gray-400 mt-2">
+        No calendar to share?{' '}
+        <Link href="/availability" className="text-blue-600 hover:underline">
+          Skip — I&apos;m fully available
+        </Link>
+      </p>
 
       {pending && (
         <AnonymisationPreview

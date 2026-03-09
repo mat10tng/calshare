@@ -66,19 +66,28 @@ const AppContext = createContext<{
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
 
-  // Load persisted preferences on mount
+  // Load persisted state on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('calshare:preferences');
-      if (saved) {
-        dispatch({ type: 'SET_PREFERENCES', preferences: JSON.parse(saved) });
+      const savedPrefs = localStorage.getItem('calshare:preferences');
+      if (savedPrefs) {
+        dispatch({ type: 'SET_PREFERENCES', preferences: JSON.parse(savedPrefs) });
+      }
+      const savedBlocks = localStorage.getItem('calshare:blocks');
+      if (savedBlocks) {
+        dispatch({ type: 'SET_BLOCKS', blocks: JSON.parse(savedBlocks) });
+      }
+      const savedSessionId = localStorage.getItem('calshare:sessionId');
+      const savedOrganizerToken = localStorage.getItem('calshare:organizerToken');
+      if (savedSessionId && savedOrganizerToken) {
+        dispatch({ type: 'SET_SESSION', sessionId: savedSessionId, organizerToken: savedOrganizerToken });
       }
     } catch {
       // localStorage unavailable or invalid JSON — use defaults
     }
   }, []);
 
-  // Persist preferences whenever they change
+  // Persist state whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem('calshare:preferences', JSON.stringify(state.preferences));
@@ -86,6 +95,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // localStorage unavailable — silently ignore
     }
   }, [state.preferences]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('calshare:blocks', JSON.stringify(state.blocks));
+    } catch {
+      // localStorage unavailable — silently ignore
+    }
+  }, [state.blocks]);
+
+  useEffect(() => {
+    try {
+      if (state.sessionId && state.organizerToken) {
+        localStorage.setItem('calshare:sessionId', state.sessionId);
+        localStorage.setItem('calshare:organizerToken', state.organizerToken);
+      } else {
+        localStorage.removeItem('calshare:sessionId');
+        localStorage.removeItem('calshare:organizerToken');
+      }
+    } catch {
+      // localStorage unavailable — silently ignore
+    }
+  }, [state.sessionId, state.organizerToken]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

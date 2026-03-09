@@ -12,10 +12,7 @@ export default function NewSessionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasBlocks = state.blocks.length > 0;
-
   async function handleCreate() {
-    if (!hasBlocks) return;
     setLoading(true);
     setError(null);
     try {
@@ -79,13 +76,12 @@ export default function NewSessionPage() {
         </p>
       </div>
 
-      {!hasBlocks && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800">
-          You need to{' '}
+      {state.blocks.length === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-800">
+          No calendar connected — you&apos;ll be counted as fully available.{' '}
           <Link href="/availability/connect" className="underline font-medium">
-            connect a calendar
-          </Link>{' '}
-          first so your availability is included.
+            Connect one →
+          </Link>
         </div>
       )}
 
@@ -93,7 +89,7 @@ export default function NewSessionPage() {
 
       <button
         onClick={handleCreate}
-        disabled={loading || !hasBlocks}
+        disabled={loading}
         className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
       >
         {loading ? 'Creating session…' : 'Create session & get invite link'}
