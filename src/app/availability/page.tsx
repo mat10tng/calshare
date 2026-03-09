@@ -112,7 +112,7 @@ export default function AvailabilityPage() {
       ) : (
         <>
           <p className="text-sm text-gray-500 mb-4">
-            Showing {state.blocks.filter((b) => b.busy).length} busy blocks across{' '}
+            Showing {state.blocks.filter((b) => b.busy).length} busy times across the next{' '}
             {state.preferences.lookAheadDays} days
           </p>
           <AvailabilityGrid

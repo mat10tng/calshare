@@ -109,8 +109,8 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       ) : (
         <>
           <h2 className="text-base font-semibold mb-3">
-            Common free slots
-            {freeSlots.length === 0 && ' — none found with current quorum'}
+            Times that work for everyone
+            {freeSlots.length === 0 && ' — none found yet'}
           </h2>
           <AvailabilityGrid
             blocks={[...allBusy, ...freeSlots]}

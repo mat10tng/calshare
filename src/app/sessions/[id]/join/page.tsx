@@ -91,10 +91,10 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         </div>
       ) : (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-          <p className="text-sm font-medium text-green-800">Ready to submit</p>
+          <p className="text-sm font-medium text-green-800">Ready to share</p>
           <p className="text-sm text-green-700">
-            {state.blocks.filter((b) => b.busy).length} anonymised busy blocks from your calendar.
-            No event details included.
+            {state.blocks.filter((b) => b.busy).length} busy times from your calendar (details hidden).
+            No event titles or descriptions shared.
           </p>
         </div>
       )}
@@ -104,7 +104,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         disabled={submitting}
         className="w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
       >
-        {submitting ? 'Submitting…' : 'Submit my availability'}
+        {submitting ? 'Sharing…' : 'Share my free times'}
       </button>
     </main>
   );
