@@ -1,0 +1,12 @@
+{
+  "planPath": "docs/plans/2026-03-09-ux-improvements.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 1: Replace jargon with plain language", "status": "pending"},
+    {"id": 1, "subject": "Task 2: Landing page — two feature cards", "status": "pending", "blockedBy": []},
+    {"id": 2, "subject": "Task 3: Calendar import — file upload to primary section", "status": "pending", "blockedBy": []},
+    {"id": 3, "subject": "Task 4: Join flow — welcome screen with context", "status": "pending", "blockedBy": []},
+    {"id": 4, "subject": "Task 5: Personal availability — share button + public view page", "status": "pending", "blockedBy": []},
+    {"id": 5, "subject": "Task 6: Mobile UX — tap targets and full-width buttons", "status": "pending", "blockedBy": []}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00Z"
+}
