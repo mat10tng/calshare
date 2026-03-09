@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Nav } from '@/components/Nav';
@@ -7,7 +7,7 @@ import Link from 'next/link';
 import type { BusyBlock } from '@/types';
 
 export default function JoinPage({ params }: { params: Promise<{ id: string }> }) {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, hydrated } = useApp();
   const [sessionId, setSessionId] = useState('');
   const [sessionInfo, setSessionInfo] = useState<{ lookAheadDays: number } | null>(null);
   const [localBlocks, setLocalBlocks] = useState<BusyBlock[]>([]);
@@ -15,6 +15,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
   const [submitted, setSubmitted] = useState(false);
   const [personalSessionId, setPersonalSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const initialisedRef = useRef(false);
 
   useEffect(() => {
     params.then(async (p) => {
@@ -29,11 +30,12 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
     });
   }, [params]);
 
-  // Initialise local blocks from AppContext once on mount
+  // Initialise local blocks from AppContext once hydration is complete
   useEffect(() => {
+    if (!hydrated || initialisedRef.current) return;
+    initialisedRef.current = true;
     setLocalBlocks(state.blocks);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally runs once
+  }, [hydrated, state.blocks]);
 
   async function submitBlocks() {
     if (!sessionId) return;
@@ -104,32 +106,35 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
       : null;
 
     return (
-      <main className="max-w-md mx-auto py-16 px-4 text-center">
-        <p className="text-4xl mb-4">✅</p>
-        <h1 className="text-2xl font-bold mb-3">Availability submitted!</h1>
-        <p className="text-gray-600 text-sm mb-6">
-          Your anonymised availability has been added to the group session.
-        </p>
-        {personalUrl && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-            <p className="text-sm font-medium text-blue-800 mb-2">Your personal availability link:</p>
-            <div className="flex gap-2">
-              <code className="flex-1 text-xs bg-white border rounded px-3 py-2 break-all">
-                {personalUrl}
-              </code>
-              <button
-                onClick={() => navigator.clipboard.writeText(personalUrl)}
-                className="text-sm border rounded-lg px-3 py-2 hover:bg-white transition-colors whitespace-nowrap"
-              >
-                Copy
-              </button>
+      <>
+        <Nav />
+        <main className="max-w-md mx-auto py-16 px-4 text-center">
+          <p className="text-4xl mb-4">✅</p>
+          <h1 className="text-2xl font-bold mb-3">Availability submitted!</h1>
+          <p className="text-gray-600 text-sm mb-6">
+            Your anonymised availability has been added to the group session.
+          </p>
+          {personalUrl && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+              <p className="text-sm font-medium text-blue-800 mb-2">Your personal availability link:</p>
+              <div className="flex gap-2">
+                <code className="flex-1 text-xs bg-white border rounded px-3 py-2 break-all">
+                  {personalUrl}
+                </code>
+                <button
+                  onClick={() => navigator.clipboard.writeText(personalUrl)}
+                  className="text-sm border rounded-lg px-3 py-2 hover:bg-white transition-colors whitespace-nowrap"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-blue-600 mt-2">
+                Share this link so others can see your availability.
+              </p>
             </div>
-            <p className="text-xs text-blue-600 mt-2">
-              Share this link so others can see your availability.
-            </p>
-          </div>
-        )}
-      </main>
+          )}
+        </main>
+      </>
     );
   }
 
@@ -169,7 +174,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
 
         <button
           onClick={submitBlocks}
-          disabled={submitting || !sessionId}
+          disabled={submitting || !sessionId || !hydrated || (!sessionInfo && !error)}
           className="mt-6 w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           {submitting ? 'Submitting…' : 'Submit my availability'}
