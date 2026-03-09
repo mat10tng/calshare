@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react';
 import type { BusyBlock, UserPreferences } from '@/types';
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -61,10 +61,12 @@ const INITIAL_STATE: AppState = {
 const AppContext = createContext<{
   state: AppState;
   dispatch: React.Dispatch<Action>;
+  hydrated: boolean;
 } | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [hydrated, setHydrated] = useState(false);
 
   // Load persisted state on mount
   useEffect(() => {
@@ -85,6 +87,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch {
       // localStorage unavailable or invalid JSON — use defaults
     }
+    setHydrated(true);
   }, []);
 
   // Persist state whenever it changes
@@ -119,13 +122,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.sessionId, state.organizerToken]);
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={{ state, dispatch, hydrated }}>
       {children}
     </AppContext.Provider>
   );
 }
 
-export function useApp() {
+export function useApp(): { state: AppState; dispatch: React.Dispatch<Action>; hydrated: boolean } {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used within AppProvider');
   return ctx;

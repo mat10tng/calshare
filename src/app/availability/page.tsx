@@ -1,11 +1,54 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Nav } from '@/components/Nav';
 
 export default function AvailabilityPage() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, hydrated } = useApp();
+  const sessionCreating = useRef(false);
+
+  // Auto-create a session for this organizer once hydration confirms no existing session
+  useEffect(() => {
+    if (!hydrated) return;
+    if (state.sessionId) return;
+    if (sessionCreating.current) return;
+    sessionCreating.current = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quorum: 1, lookAheadDays: 14, expiryDays: 30 }),
+        });
+        if (res.ok) {
+          const { sessionId, organizerToken } = await res.json();
+          dispatch({ type: 'SET_SESSION', sessionId, organizerToken });
+        }
+      } catch {
+        // Non-fatal — session can be created later
+      }
+    })();
+  }, [hydrated, state.sessionId, dispatch]);
+
+  // Sync blocks to the organizer's session slot (debounced 1 s)
+  useEffect(() => {
+    if (!state.sessionId || !state.organizerToken) return;
+    const sessionId = state.sessionId;
+    const organizerToken = state.organizerToken;
+    const timer = setTimeout(() => {
+      fetch(`/api/sessions/${sessionId}/participants`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${organizerToken}`,
+        },
+        body: JSON.stringify({ blocks: state.blocks }),
+      }).catch(() => {/* non-fatal */});
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [state.blocks, state.sessionId, state.organizerToken]);
 
   const now = new Date().toISOString().split('T')[0];
   const until = new Date(

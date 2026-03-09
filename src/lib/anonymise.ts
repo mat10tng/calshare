@@ -7,6 +7,7 @@ interface RawEvent {
   end: string;
   status: EventStatus;
   allDay: boolean;
+  title?: string;
   [key: string]: unknown;
 }
 
@@ -23,5 +24,6 @@ export function anonymiseEvents(events: RawEvent[]): BusyBlock[] {
     end: e.allDay ? e.end : toUtcIso(e.end),
     busy: e.status !== 'free',
     allDay: e.allDay,
+    ...(e.title ? { title: e.title } : {}),
   }));
 }

@@ -105,9 +105,8 @@ export default function ConnectPage() {
     }
   }
 
-  function handleConfirm() {
-    if (!pending) return;
-    dispatch({ type: 'ADD_BLOCKS', blocks: pending.blocks });
+  function handleConfirm(blocks: import('@/types').BusyBlock[]) {
+    dispatch({ type: 'ADD_BLOCKS', blocks });
     setPending(null);
     router.push('/availability');
   }

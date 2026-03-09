@@ -1,16 +1,19 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { BusyBlock } from '@/types';
 
 interface Props {
   blocks: BusyBlock[];
   source: string;
-  onConfirm: () => void;
+  onConfirm: (blocks: BusyBlock[]) => void;
   onCancel: () => void;
 }
 
 export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Props) {
+  const [includeTitle, setIncludeTitle] = useState(false);
+
   const preview = blocks.slice(0, 8);
+  const hasTitles = blocks.some((b) => b.title);
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);
@@ -29,6 +32,27 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
     return () => document.removeEventListener('keydown', handleKey);
   }, [onCancel]);
 
+  function handleConfirm() {
+    const finalBlocks = includeTitle
+      ? blocks
+      : blocks.map(({ title: _t, ...b }) => b as BusyBlock);
+    onConfirm(finalBlocks);
+  }
+
+  const removedItems = [
+    'Descriptions',
+    'Attendees',
+    'Locations',
+    'Organiser',
+    ...(!includeTitle ? ['Event titles'] : []),
+  ];
+  const keptItems = [
+    'Start time',
+    'End time',
+    'Busy / Free',
+    ...(includeTitle && hasTitles ? ['Event titles'] : []),
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div
@@ -40,10 +64,10 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
         <h2 id="anon-preview-title" className="text-xl font-semibold mb-1">Your calendar data has been anonymised</h2>
         <p className="text-sm text-gray-500 mb-5">Source: {source}</p>
 
-        <div className="grid grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <p className="text-sm font-medium text-red-600 mb-2">What we REMOVED</p>
-            {['Event titles', 'Descriptions', 'Attendees', 'Locations', 'Organiser'].map(item => (
+            {removedItems.map(item => (
               <p key={item} className="text-sm text-gray-600 flex items-center gap-1">
                 <span className="text-red-400">✕</span> {item}
               </p>
@@ -51,12 +75,37 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
           </div>
           <div>
             <p className="text-sm font-medium text-green-600 mb-2">What we KEPT</p>
-            {['Start time', 'End time', 'Busy / Free'].map(item => (
+            {keptItems.map(item => (
               <p key={item} className="text-sm text-gray-600 flex items-center gap-1">
                 <span className="text-green-500">✓</span> {item}
               </p>
             ))}
           </div>
+        </div>
+
+        {/* Detail opt-in */}
+        <div className="border rounded-lg p-3 mb-4 bg-gray-50">
+          <p className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Optional details</p>
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeTitle}
+              onChange={(e) => setIncludeTitle(e.target.checked)}
+              className="mt-0.5 accent-blue-600"
+            />
+            <span className="text-sm text-gray-700">
+              Include event titles
+              {hasTitles
+                ? <span className="text-gray-400 text-xs ml-1">(found in your calendar)</span>
+                : <span className="text-gray-400 text-xs ml-1">(none found in this calendar)</span>
+              }
+            </span>
+          </label>
+          {includeTitle && (
+            <p className="text-xs text-amber-700 mt-2 ml-6">
+              Event titles will be visible to group session organisers when you join a session.
+            </p>
+          )}
         </div>
 
         <div className="bg-gray-50 rounded-lg p-3 mb-5">
@@ -73,6 +122,9 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
                     ? `${b.start}  (all day)  ${b.busy ? 'busy' : 'free'}`
                     : `${formatTime(b.start)} → ${formatEnd(b.end)}  ${b.busy ? 'busy' : 'free'}`
                   }
+                  {includeTitle && b.title && (
+                    <span className="text-blue-600 ml-2">&quot;{b.title}&quot;</span>
+                  )}
                 </div>
               ))}
               {blocks.length > 8 && (
@@ -83,12 +135,15 @@ export function AnonymisationPreview({ blocks, source, onConfirm, onCancel }: Pr
         </div>
 
         <p className="text-xs text-gray-500 mb-5">
-          Raw event data has been discarded and is never stored or transmitted.
+          {includeTitle
+            ? 'Event titles will be stored locally and included when sharing with a session.'
+            : 'Raw event data has been discarded and is never stored or transmitted.'
+          }
         </p>
 
         <div className="flex gap-3">
           <button
-            onClick={onConfirm}
+            onClick={handleConfirm}
             autoFocus
             className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
           >

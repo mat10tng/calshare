@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
-import { kv, getSession, generateToken } from '@/lib/session';
+import { kv, getSession, generateToken, verifyOrganizerToken } from '@/lib/session';
 import type { BusyBlock, Session } from '@/types';
+
+const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/;
+
+function sanitiseBlocks(blocks: BusyBlock[]): BusyBlock[] {
+  return blocks.map(b => ({
+    start: String(b.start),
+    end: String(b.end),
+    busy: Boolean(b.busy),
+    allDay: Boolean(b.allDay),
+    ...(b.title ? { title: String(b.title).slice(0, 200) } : {}),
+  }));
+}
 
 export async function POST(
   req: Request,
@@ -33,15 +45,7 @@ export async function POST(
     return NextResponse.json({ error: 'Too many blocks' }, { status: 400 });
   }
 
-  // Strip anything beyond BusyBlock fields for safety
-  const safeBlocks: BusyBlock[] = blocks.map(b => ({
-    start: String(b.start),
-    end: String(b.end),
-    busy: Boolean(b.busy),
-    allDay: Boolean(b.allDay),
-  }));
-
-  const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/;
+  const safeBlocks = sanitiseBlocks(blocks);
   for (const b of safeBlocks) {
     if (!ISO_RE.test(b.start) || !ISO_RE.test(b.end)) {
       return NextResponse.json({ error: 'Invalid block date format' }, { status: 400 });
@@ -55,4 +59,42 @@ export async function POST(
   };
   await kv.set(`session:${id}`, updated, { keepTtl: true });
   return NextResponse.json({ participantId }, { status: 201 });
+}
+
+// Organizer can upsert their own blocks under the fixed '__organizer__' key
+export async function PUT(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const authHeader = req.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const session = await verifyOrganizerToken(id, token);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await req.json();
+  const { blocks } = body as { blocks: BusyBlock[] };
+  if (!Array.isArray(blocks)) {
+    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+  }
+
+  if (blocks.length > 1000) {
+    return NextResponse.json({ error: 'Too many blocks' }, { status: 400 });
+  }
+
+  const safeBlocks = sanitiseBlocks(blocks);
+  for (const b of safeBlocks) {
+    if (!ISO_RE.test(b.start) || !ISO_RE.test(b.end)) {
+      return NextResponse.json({ error: 'Invalid block date format' }, { status: 400 });
+    }
+  }
+
+  const updated: Session = {
+    ...session,
+    participants: { ...session.participants, __organizer__: safeBlocks },
+  };
+  await kv.set(`session:${id}`, updated, { keepTtl: true });
+  return NextResponse.json({ ok: true });
 }

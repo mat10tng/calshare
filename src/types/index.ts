@@ -3,6 +3,7 @@ export interface BusyBlock {
   end: string;     // ISO 8601 UTC
   busy: boolean;
   allDay: boolean;
+  title?: string;  // optional — only included when user opts in
 }
 
 export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';

@@ -6,6 +6,7 @@ interface GoogleEvent {
   end?: { dateTime?: string; date?: string };
   transparency?: string;
   status?: string;
+  summary?: string;
 }
 
 export async function fetchGoogleEvents(
@@ -41,6 +42,7 @@ export async function fetchGoogleEvents(
     end: e.end?.dateTime ?? e.end?.date ?? '',
     status: e.transparency === 'transparent' || e.status === 'cancelled' ? 'free' : 'busy',
     allDay: !e.start?.dateTime,
+    title: e.summary || undefined,
   })).filter(e => e.start && e.end);
 
   return anonymiseEvents(raw);

@@ -6,6 +6,7 @@ interface MsEvent {
   end?: { dateTime?: string };
   showAs?: string;
   isAllDay?: boolean;
+  subject?: string;
 }
 
 export async function fetchMicrosoftEvents(
@@ -19,7 +20,7 @@ export async function fetchMicrosoftEvents(
     startDateTime: now.toISOString(),
     endDateTime: until.toISOString(),
     $top: '1000',
-    $select: 'start,end,showAs,isAllDay',
+    $select: 'start,end,showAs,isAllDay,subject',
   });
 
   const res = await fetch(
@@ -41,6 +42,7 @@ export async function fetchMicrosoftEvents(
     end: e.end?.dateTime ? e.end.dateTime.replace(/Z?$/, 'Z') : '',
     status: e.showAs === 'free' || e.showAs === 'oof' || e.showAs === 'workingElsewhere' ? 'free' : 'busy',
     allDay: e.isAllDay ?? false,
+    title: e.subject || undefined,
   })).filter(e => e.start && e.end);
 
   return anonymiseEvents(raw);

@@ -26,6 +26,7 @@ export function parseIcsFile(content: string): BusyBlock[] {
       end: event.endDate.toJSDate().toISOString(),
       status: transp === 'TRANSPARENT' ? 'free' : 'busy',
       allDay: event.startDate.isDate,
+      title: event.summary || undefined,
     };
   });
 
