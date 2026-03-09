@@ -5,11 +5,15 @@ export interface BusyBlock {
   allDay: boolean;
 }
 
+export type Weekday = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+
+export type RecurrenceRule = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'none';
+
 export interface UserPreferences {
   workingHours: {
-    [day: string]: { start: string; end: string } | null; // null = day off
+    [day in Weekday]?: { start: string; end: string } | null;
   };
-  blockedWindows: { start: string; end: string; recurrence: string }[];
+  blockedWindows: { start: string; end: string; recurrence: RecurrenceRule }[];
   bufferMinutes: number;
   lookAheadDays: number;
 }
