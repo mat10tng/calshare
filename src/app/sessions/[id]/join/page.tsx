@@ -11,6 +11,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
   const [sessionId, setSessionId] = useState('');
   const [sessionInfo, setSessionInfo] = useState<{ lookAheadDays: number } | null>(null);
   const [localBlocks, setLocalBlocks] = useState<BusyBlock[]>([]);
+  const [groupName, setGroupName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [personalSessionId, setPersonalSessionId] = useState<string | null>(null);
@@ -52,6 +53,20 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         const d = await joinRes.json().catch(() => ({}));
         throw new Error((d as { error?: string }).error ?? 'Failed to join group session');
       }
+
+      const { participantId } = await joinRes.json() as { participantId: string };
+
+      const resolvedName = groupName.trim() || `Group ${sessionId}`;
+      dispatch({
+        type: 'ADD_GROUP',
+        group: {
+          sessionId,
+          role: 'participant',
+          participantId,
+          name: resolvedName,
+          joinedAt: new Date().toISOString(),
+        },
+      });
 
       // 2. Save blocks to AppContext
       dispatch({ type: 'SET_BLOCKS', blocks: localBlocks });
@@ -176,6 +191,20 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
           toDate={until}
           onBlocksChange={setLocalBlocks}
         />
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-1">
+            Name this group <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder="e.g. Dinner planning"
+            className="border rounded-lg px-3 py-2 w-full text-sm"
+            maxLength={80}
+          />
+        </div>
 
         <button
           onClick={submitBlocks}
