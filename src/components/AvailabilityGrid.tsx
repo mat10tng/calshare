@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { BusyBlock } from '@/types';
-import { findLargestBusyRect } from '@/lib/gif-placement';
+import { findAllBusyRects } from '@/lib/gif-placement';
 import { randomCatGif } from '@/lib/gif-catalog';
 
 interface Props {
@@ -124,8 +124,8 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Find the single largest qualifying busy rectangle
-  const gifRect = useMemo(() => {
+  // Find all qualifying busy rectangles
+  const gifRects = useMemo(() => {
     const grid: boolean[][] = HOURS.map((hour) =>
       dates.map((date) => {
         const slotStart = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00.000Z`);
@@ -133,11 +133,16 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
         return blocks.some((b) => b.busy && new Date(b.start) < slotEnd && new Date(b.end) > slotStart);
       }),
     );
-    return findLargestBusyRect(grid);
+    return findAllBusyRects(grid);
   }, [blocks, dates]);
 
-  // Pick a random cat GIF once per mount (stable across re-renders)
-  const catGif = useRef(randomCatGif());
+  // Stable GIF assignments per rect index — grow as needed, never reshuffle
+  const catGifsRef = useRef<string[]>([]);
+  if (catGifsRef.current.length < gifRects.length) {
+    while (catGifsRef.current.length < gifRects.length) {
+      catGifsRef.current.push(randomCatGif());
+    }
+  }
 
   // Clear local overrides when the parent replaces the block list
   useEffect(() => {
@@ -218,25 +223,30 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
     setDrag({ startRow: row, startCol: col, currentRow: row, currentCol: col, mode: !busy });
   }
 
-  const gifOverlay: React.ReactNode = cellMetrics && gifRect ? (() => {
-    const top = cellMetrics.headerH + gifRect.startRow * cellMetrics.rowH;
-    const left = cellMetrics.timeW + gifRect.startCol * cellMetrics.colW;
-    const width = gifRect.cols * cellMetrics.colW;
-    const height = gifRect.rows * cellMetrics.rowH;
-    return (
-      <div
-        className="absolute pointer-events-none overflow-hidden rounded"
-        style={{ top, left, width, height, opacity: 0.75, willChange: 'transform' }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`/gifs/${catGif.current}`}
-          alt="cat"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      </div>
-    );
-  })() : null;
+  const gifOverlays: React.ReactNode = cellMetrics && gifRects.length > 0 ? (
+    <>
+      {gifRects.map((rect, i) => {
+        const top = cellMetrics.headerH + rect.startRow * cellMetrics.rowH;
+        const left = cellMetrics.timeW + rect.startCol * cellMetrics.colW;
+        const width = rect.cols * cellMetrics.colW;
+        const height = rect.rows * cellMetrics.rowH;
+        return (
+          <div
+            key={i}
+            className="absolute pointer-events-none overflow-hidden rounded"
+            style={{ top, left, width, height, opacity: 0.75, willChange: 'transform' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/gifs/${catGifsRef.current[i]}`}
+              alt="cat"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+        );
+      })}
+    </>
+  ) : null;
 
   return (
     <div className="overflow-x-auto">
@@ -286,7 +296,7 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
             ))}
           </tbody>
         </table>
-        {gifOverlay}
+        {gifOverlays}
       </div>
       <div className="flex gap-4 mt-3 text-xs text-gray-500">
         <span className="flex items-center gap-1.5">
