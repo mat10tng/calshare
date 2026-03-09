@@ -12,7 +12,6 @@ export function buildMsalConfig(): Configuration {
     },
     cache: {
       cacheLocation: 'sessionStorage',
-      storeAuthStateInCookie: false,
     },
   };
 }
