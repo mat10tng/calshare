@@ -7,6 +7,8 @@ import { IcsGuide } from '@/components/IcsGuide';
 import { parseIcsFile } from '@/lib/ics-parser';
 import { generatePKCE, buildGoogleAuthUrl, exchangeGoogleCode } from '@/lib/oauth';
 import { fetchGoogleEvents } from '@/lib/google-calendar';
+import { acquireMicrosoftToken } from '@/lib/msal';
+import { fetchMicrosoftEvents } from '@/lib/microsoft-calendar';
 import type { BusyBlock } from '@/types';
 
 interface PendingImport {
@@ -55,6 +57,20 @@ export default function ConnectPage() {
       }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleMicrosoftConnect() {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await acquireMicrosoftToken();
+      const blocks = await fetchMicrosoftEvents(token, state.preferences.lookAheadDays);
+      setPending({ blocks, source: 'Outlook / Microsoft 365' });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Microsoft connection failed.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleGoogleConnect() {
     const { verifier, challenge } = await generatePKCE();
@@ -115,11 +131,12 @@ export default function ConnectPage() {
             <span>Connect Google Calendar</span>
           </button>
           <button
-            disabled
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm text-gray-400 cursor-not-allowed bg-gray-50"
+            onClick={handleMicrosoftConnect}
+            disabled={loading}
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">📧</span>
-            <span>Connect Outlook / Microsoft 365 <span className="text-xs">(coming soon)</span></span>
+            <span>Connect Outlook / Microsoft 365</span>
           </button>
         </div>
       </section>
