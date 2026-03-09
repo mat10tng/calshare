@@ -1,9 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { AnonymisationPreview } from '@/components/AnonymisationPreview';
 import { parseIcsFile } from '@/lib/ics-parser';
+import { generatePKCE, buildGoogleAuthUrl, exchangeGoogleCode } from '@/lib/oauth';
+import { fetchGoogleEvents } from '@/lib/google-calendar';
 import type { BusyBlock } from '@/types';
 
 interface PendingImport {
@@ -12,11 +14,53 @@ interface PendingImport {
 }
 
 export default function ConnectPage() {
-  const { dispatch } = useApp();
+  const { state, dispatch } = useApp();
   const router = useRouter();
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const provider = sessionStorage.getItem('oauth_provider');
+    const verifier = sessionStorage.getItem('pkce_verifier');
+
+    if (!code || !verifier || !provider) return;
+
+    // Clean up URL and session storage
+    sessionStorage.removeItem('pkce_verifier');
+    sessionStorage.removeItem('oauth_provider');
+    window.history.replaceState({}, '', '/availability/connect');
+
+    setLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const redirectUri = `${window.location.origin}/availability/connect`;
+        let blocks;
+
+        if (provider === 'google') {
+          const token = await exchangeGoogleCode(code, verifier, redirectUri);
+          blocks = await fetchGoogleEvents(token, state.preferences.lookAheadDays);
+          setPending({ blocks, source: 'Google Calendar' });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'OAuth connection failed.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleGoogleConnect() {
+    const { verifier, challenge } = await generatePKCE();
+    sessionStorage.setItem('pkce_verifier', verifier);
+    sessionStorage.setItem('oauth_provider', 'google');
+    const redirectUri = `${window.location.origin}/availability/connect`;
+    window.location.href = buildGoogleAuthUrl(redirectUri, challenge);
+  }
 
   async function handleIcsUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -61,11 +105,12 @@ export default function ConnectPage() {
         <h2 className="text-base font-semibold mb-3">Connect via account</h2>
         <div className="flex flex-col gap-2">
           <button
-            disabled
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm text-gray-400 cursor-not-allowed bg-gray-50"
+            onClick={handleGoogleConnect}
+            disabled={loading}
+            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">📅</span>
-            <span>Connect Google Calendar <span className="text-xs">(coming soon)</span></span>
+            <span>Connect Google Calendar</span>
           </button>
           <button
             disabled
