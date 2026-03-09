@@ -122,14 +122,10 @@ export default function ConnectPage() {
         Your calendar data is processed entirely in your browser. Event details are never stored or transmitted.
       </p>
 
-      {/* Path B: import from file */}
+      {/* Primary: File upload */}
       <section className="mb-8">
-        <h2 className="text-base font-semibold mb-1">Import from file</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Export your calendar and upload the <code className="bg-gray-100 px-1 rounded">.ics</code> or <code className="bg-gray-100 px-1 rounded">.zip</code> file directly.
-          Nothing is sent to any server.
-        </p>
-        <div className="flex flex-col gap-2 mb-3">
+        <h2 className="text-base font-semibold mb-3">Upload a file</h2>
+        <div className="flex flex-col gap-2 mb-4">
           <a
             href="https://calendar.google.com/calendar/r/settings/export"
             target="_blank"
@@ -158,9 +154,15 @@ export default function ConnectPage() {
             <span>Export from Microsoft 365 (work/school) →</span>
           </a>
         </div>
-        <label className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-lg px-4 py-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-          <span className="text-sm font-medium text-gray-700">
-            {loading ? 'Processing…' : 'Click to upload .ics or .zip file'}
+        <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-300 rounded-xl px-4 py-10 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+          <span className="text-3xl">📂</span>
+          <span className="text-sm font-medium text-gray-700 text-center">
+            {loading ? 'Processing…' : (
+              <>
+                Drop your .ics or .zip file here<br />
+                <span className="text-gray-400 font-normal">or click to browse</span>
+              </>
+            )}
           </span>
           <input
             type="file"
@@ -172,19 +174,22 @@ export default function ConnectPage() {
         </label>
         {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
         <p className="text-sm text-gray-400 mt-2 text-center">
-          Need help?{' '}
+          Need step-by-step help?{' '}
           <button onClick={() => setShowGuide(true)} className="text-blue-600 underline hover:text-blue-700">
-            See step-by-step guide
+            See export guide
           </button>
         </p>
       </section>
 
-      {/* Path A: OAuth sync */}
+      {/* Divider */}
+      <div className="relative flex items-center mb-6">
+        <div className="flex-1 border-t border-gray-200" />
+        <span className="px-3 text-xs text-gray-400">or connect instantly</span>
+        <div className="flex-1 border-t border-gray-200" />
+      </div>
+
+      {/* Secondary: OAuth */}
       <section className="mb-6">
-        <h2 className="text-base font-semibold mb-1">Sync via account</h2>
-        <p className="text-sm text-gray-500 mb-3">
-          Sign in once and your availability stays up to date automatically.
-        </p>
         <div className="flex flex-col gap-2">
           <button
             onClick={handleGoogleConnect}
@@ -192,7 +197,7 @@ export default function ConnectPage() {
             className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">📅</span>
-            <span>Sync Google Calendar</span>
+            <span>Continue with Google</span>
           </button>
           <button
             onClick={handleMicrosoftConnect}
@@ -200,7 +205,7 @@ export default function ConnectPage() {
             className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <span className="text-lg">📧</span>
-            <span>Sync Outlook / Microsoft 365</span>
+            <span>Continue with Microsoft / Outlook</span>
           </button>
         </div>
       </section>
@@ -208,7 +213,7 @@ export default function ConnectPage() {
       <p className="text-center text-sm text-gray-400 mt-2">
         No calendar to share?{' '}
         <Link href="/availability" className="text-blue-600 hover:underline">
-          Skip — I&apos;m fully available
+          Skip — I&apos;m available whenever
         </Link>
       </p>
 

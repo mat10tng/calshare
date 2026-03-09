@@ -87,17 +87,17 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       </div>
 
       {/* Invite link */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-8">
-        <p className="text-sm font-medium mb-2">Share this invite link:</p>
-        <div className="flex gap-2">
-          <code className="flex-1 text-xs bg-white border rounded px-3 py-2 break-all">
+      <div className="bg-gray-50 rounded-xl p-4 mb-8">
+        <p className="text-sm font-semibold mb-3">Invite link — share this with your group</p>
+        <div className="flex gap-2 items-stretch">
+          <code className="flex-1 text-xs bg-white border rounded-lg px-3 py-2.5 break-all self-center">
             {joinLink || '…'}
           </code>
           <button
             onClick={copyLink}
-            className="text-sm border rounded-lg px-3 py-2 hover:bg-white transition-colors whitespace-nowrap"
+            className="text-sm border rounded-lg px-4 py-2.5 hover:bg-white transition-colors whitespace-nowrap font-medium min-h-[44px]"
           >
-            {copied ? '✓ Copied' : 'Copy'}
+            {copied ? '✓ Copied' : 'Copy link'}
           </button>
         </div>
       </div>
@@ -109,8 +109,8 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
       ) : (
         <>
           <h2 className="text-base font-semibold mb-3">
-            Common free slots
-            {freeSlots.length === 0 && ' — none found with current quorum'}
+            Times that work for everyone
+            {freeSlots.length === 0 && ' — none found yet'}
           </h2>
           <AvailabilityGrid
             blocks={[...allBusy, ...freeSlots]}

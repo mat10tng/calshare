@@ -102,7 +102,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
 
   if (submitted) {
     const personalUrl = personalSessionId && typeof window !== 'undefined'
-      ? `${window.location.origin}/u/${personalSessionId}`
+      ? `${window.location.origin}/sessions/${personalSessionId}/view`
       : null;
 
     return (
@@ -110,9 +110,10 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         <Nav />
         <main className="max-w-md mx-auto py-16 px-4 text-center">
           <p className="text-4xl mb-4">✅</p>
-          <h1 className="text-2xl font-bold mb-3">Availability submitted!</h1>
+          <h1 className="text-2xl font-bold mb-3">Availability shared!</h1>
           <p className="text-gray-600 text-sm mb-6">
-            Your anonymised availability has been added to the group session.
+            Your free times have been added. The organiser can now see when everyone can meet.
+            No event details were shared.
           </p>
           {personalUrl && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
@@ -142,9 +143,13 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
     <>
       <Nav />
       <main className="max-w-4xl mx-auto py-12 px-4">
-        <h1 className="text-2xl font-bold mb-2">Join scheduling session</h1>
+        <h1 className="text-2xl font-bold mb-3">You&apos;ve been invited to find a time together</h1>
+        <p className="text-sm text-gray-600 mb-4">
+          Add your free times and the organiser can see when everyone can meet —
+          without seeing your calendar details.
+        </p>
         {sessionInfo && (
-          <p className="text-sm text-gray-500 mb-4">Looking ahead {sessionInfo.lookAheadDays} days</p>
+          <p className="text-xs text-gray-400 mb-4">Looking ahead {sessionInfo.lookAheadDays} days</p>
         )}
 
         {error && (
@@ -175,10 +180,14 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         <button
           onClick={submitBlocks}
           disabled={submitting || !sessionId || !hydrated || (!sessionInfo && !error)}
-          className="mt-6 w-full bg-blue-600 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="mt-6 w-full bg-blue-600 text-white rounded-xl py-3 font-medium text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {submitting ? 'Submitting…' : 'Submit my availability'}
+          {submitting ? 'Sharing…' : 'Share my free times'}
         </button>
+
+        <p className="text-center text-xs text-gray-400 mt-4">
+          🔒 No account needed. No event details shared.
+        </p>
       </main>
     </>
   );

@@ -61,7 +61,7 @@ export default function NewSessionPage() {
 
       <div className="mb-6">
         <label className="block text-sm font-medium mb-2">
-          Minimum free participants (quorum)
+          How many people need to be free?
         </label>
         <input
           type="number"
@@ -69,10 +69,10 @@ export default function NewSessionPage() {
           max={20}
           value={quorum}
           onChange={(e) => setQuorum(Math.max(1, Math.min(20, Number(e.target.value))))}
-          className="border rounded-lg px-3 py-2 w-full text-sm"
+          className="border rounded-lg px-3 py-2 w-full text-base"
         />
         <p className="text-xs text-gray-400 mt-1">
-          Only show slots where at least {quorum} participant{quorum !== 1 ? 's are' : ' is'} free.
+          Only show times where at least {quorum} {quorum !== 1 ? 'people are' : 'person is'} available.
         </p>
       </div>
 
