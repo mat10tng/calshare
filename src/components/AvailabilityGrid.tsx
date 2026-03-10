@@ -725,6 +725,14 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'var(--slot-free)', border: '1px solid var(--border)' }} /> Free
             </span>
+            {proposals && proposals.length > 0 && (
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-0.5">
+                  <span className="w-[6px] h-[6px] rounded-full inline-block" style={{ background: 'var(--accent)', boxShadow: '0 0 0 1px rgba(255,255,255,0.8)' }} />
+                </span>
+                Meetup vote
+              </span>
+            )}
             {editableParticipantId && onBlocksChange && (
               <span className="ml-auto italic">Drag to edit your availability</span>
             )}
@@ -741,6 +749,22 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
               <span className="ml-auto italic">Drag to toggle busy / free</span>
             )}
           </>
+        )}
+      </div>
+      {/* Help legend for newcomers */}
+      <div className="mt-2 text-xs" style={{ color: 'var(--subtle)', lineHeight: 1.6 }}>
+        {participants ? (
+          <span>
+            Colored cells = busy.
+            {editableParticipantId && onBlocksChange && ' Drag on the grid to mark your busy hours.'}
+            {' '}Hover a name to highlight their slots. Click a name to hide/show.
+            {proposals && proposals.length > 0 && ' Hover a meetup card to see its votes on the calendar.'}
+            {' '}Hover any cell for details.
+          </span>
+        ) : (
+          <span>
+            Drag across cells to mark hours as busy or free. Hover any cell for details.
+          </span>
         )}
       </div>
     </div>
