@@ -28,7 +28,7 @@ export function GroupsList({ groups, onRename, onLeave, onCreateClick }: Props) 
   }
 
   async function copyLink(sessionId: string) {
-    const url = `${window.location.origin}/sessions/${sessionId}/join`;
+    const url = `${window.location.origin}/group?id=${sessionId}`;
     await navigator.clipboard.writeText(url);
     setCopiedId(sessionId);
     setTimeout(() => setCopiedId(null), 2000);
@@ -87,11 +87,11 @@ export function GroupsList({ groups, onRename, onLeave, onCreateClick }: Props) 
             </div>
             {/* Action row */}
             <div className="flex gap-2 flex-wrap">
-              <Link href={`/sessions/${group.sessionId}`} className="btn btn-secondary btn-sm">
+              <Link href={`/group?id=${group.sessionId}`} className="btn btn-secondary btn-sm">
                 Open
               </Link>
               <button onClick={() => copyLink(group.sessionId)} className="btn btn-secondary btn-sm">
-                {copiedId === group.sessionId ? '✓ Copied' : 'Copy link'}
+                {copiedId === group.sessionId ? 'Copied!' : 'Share'}
               </button>
               <button onClick={() => startRename(group)} className="btn btn-ghost btn-sm">
                 Rename

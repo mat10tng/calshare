@@ -45,7 +45,7 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
             <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
               <h1 className="page-title">Shared availability</h1>
               {sessionId && (
-                <Link href={`/sessions/${sessionId}/join`} className="btn btn-primary">
+                <Link href={`/group?id=${sessionId}`} className="btn btn-primary">
                   Join their group session &rarr;
                 </Link>
               )}

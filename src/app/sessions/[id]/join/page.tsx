@@ -24,7 +24,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
       // Check if already a member
       const existing = state.groups.find(g => g.sessionId === groupSessionId);
       if (existing) {
-        router.replace(`/sessions/${groupSessionId}`);
+        router.replace(`/group?id=${groupSessionId}`);
         return;
       }
 
@@ -77,7 +77,7 @@ export default function JoinPage({ params }: { params: Promise<{ id: string }> }
         },
       });
 
-      router.replace(`/sessions/${groupSessionId}`);
+      router.replace(`/group?id=${groupSessionId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join.');
     }

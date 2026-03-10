@@ -63,7 +63,7 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
 
       <div className="mt-10 pt-8 text-center" style={{ borderTop: '1px solid var(--border)' }}>
         <p className="text-sm mb-3" style={{ color: 'var(--muted)' }}>Want to find a time together?</p>
-        <Link href="/sessions/new" className="btn btn-primary">
+        <Link href="/me" className="btn btn-primary">
           Create a group session &rarr;
         </Link>
       </div>

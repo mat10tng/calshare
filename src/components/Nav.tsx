@@ -12,7 +12,7 @@ export function Nav() {
       style={{ background: 'var(--nav-bg)', borderBottom: '1px solid var(--border)' }}
     >
       <Link
-        href="/availability"
+        href={state.sessionId ? `/me?id=${state.sessionId}` : '/me'}
         className="font-semibold text-lg tracking-tight flex items-baseline gap-1.5"
         style={{ color: 'var(--foreground)' }}
       >
@@ -22,23 +22,14 @@ export function Nav() {
         </span>
       </Link>
       <div className="flex items-center gap-4 text-sm">
-        <Link
-          href="/availability"
-          className="transition-colors"
-          style={{ color: 'var(--muted)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--foreground)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
-        >
-          My Page
-        </Link>
         {state.sessionId && (
-          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--subtle)' }}>
+          <Link href={`/me?id=${state.sessionId}`} className="flex items-center gap-1.5 text-xs transition-colors" style={{ color: 'var(--subtle)' }}>
             <span
               className="w-2 h-2 rounded-full inline-block"
               style={{ background: state.userColor || participantColor(state.sessionId) }}
             />
             {state.displayName || participantName(state.sessionId)}
-          </span>
+          </Link>
         )}
       </div>
     </nav>

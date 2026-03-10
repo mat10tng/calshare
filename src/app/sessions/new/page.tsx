@@ -77,7 +77,7 @@ export default function NewSessionPage() {
         }),
       });
 
-      router.push(`/sessions/${sessionId}`);
+      router.push(`/group?id=${sessionId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
       setLoading(false);
@@ -88,7 +88,7 @@ export default function NewSessionPage() {
     <>
       <Nav />
       <main className="page-container page-container--narrow">
-        <Link href="/availability" className="back-link">&larr; Back to availability</Link>
+        <Link href="/me" className="back-link">&larr; Back to availability</Link>
 
         <h1 className="page-title mb-2">New Group Session</h1>
         <p className="page-subtitle mb-8">
@@ -127,7 +127,7 @@ export default function NewSessionPage() {
         {state.blocks.length === 0 && (
           <div className="msg-info mb-4">
             No calendar connected — you&apos;ll be counted as fully available.{' '}
-            <Link href="/availability/connect" className="underline font-medium" style={{ color: 'var(--foreground)' }}>
+            <Link href="/me/connect" className="underline font-medium" style={{ color: 'var(--foreground)' }}>
               Connect one &rarr;
             </Link>
           </div>
