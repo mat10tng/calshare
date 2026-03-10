@@ -37,6 +37,7 @@ function GroupPageInner() {
   const [copied, setCopied] = useState(false);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   // "Suggest a time" — title modal
   const [showTitleModal, setShowTitleModal] = useState(false);
@@ -83,7 +84,7 @@ function GroupPageInner() {
   useEffect(() => {
     if (!groupId) return;
     fetchSession();
-    const interval = setInterval(fetchSession, 10_000);
+    const interval = setInterval(fetchSession, 3_000);
     return () => clearInterval(interval);
   }, [groupId, fetchSession]);
 
@@ -95,6 +96,12 @@ function GroupPageInner() {
     await navigator.clipboard.writeText(joinLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function manualRefresh() {
+    setRefreshing(true);
+    await fetchSession();
+    setRefreshing(false);
   }
 
   // Create proposal (title only), then activate it for range selection
@@ -211,24 +218,6 @@ function GroupPageInner() {
     await fetchSession();
   }
 
-  function formatVoteCells(cells: string[]): string {
-    if (!Array.isArray(cells) || cells.length === 0) return '—';
-    const byDate = new Map<string, number[]>();
-    for (const c of cells) {
-      const [d, h] = c.split(':');
-      const arr = byDate.get(d);
-      if (arr) arr.push(Number(h)); else byDate.set(d, [Number(h)]);
-    }
-    const weekday = (d: string) => new Date(d + 'T00:00:00.000Z').toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
-    const time = (h: number) => `${String(h).padStart(2, '0')}:00`;
-    const parts: string[] = [];
-    for (const [d, hours] of byDate) {
-      hours.sort((a, b) => a - b);
-      parts.push(`${weekday(d)} ${time(hours[0])}\u2009\u2013\u2009${time(hours[hours.length - 1] + 1)}`);
-    }
-    return parts.join(', ');
-  }
-
   function nameOf(pid: string) {
     const p = participants.find(pp => pp.id === pid);
     return p?.displayName || participantName(pid);
@@ -295,6 +284,15 @@ function GroupPageInner() {
               <h1 className="page-title">{groupName || `Group ${groupId}`}</h1>
               <button onClick={copyLink} className="btn btn-secondary btn-sm">
                 {copied ? 'Copied!' : 'Share'}
+              </button>
+              <button
+                onClick={manualRefresh}
+                disabled={refreshing}
+                className="btn btn-ghost btn-sm"
+                title="Refresh"
+                style={{ opacity: refreshing ? 0.5 : 1 }}
+              >
+                {refreshing ? '...' : '↻'}
               </button>
             </div>
             <p className="page-subtitle">
@@ -390,7 +388,6 @@ function GroupPageInner() {
                   {proposals.map((proposal) => {
                     const voteEntries = Object.entries(proposal.votes)
                       .filter(([, v]) => Array.isArray(v) && v.length > 0);
-                    const isCreator = myParticipantId === proposal.createdBy;
                     const isActive = activeProposalId === proposal.id;
                     const myVote = myParticipantId ? proposal.votes[myParticipantId] : undefined;
 
@@ -435,18 +432,10 @@ function GroupPageInner() {
                                 {proposal.title}
                               </p>
                             )}
-                            <p className="text-xs mt-0.5" style={{ color: 'var(--subtle)' }}>
-                              {nameOf(proposal.createdBy)}
-                              {voteEntries.length > 0 && ` · ${voteEntries.length} response${voteEntries.length !== 1 ? 's' : ''}`}
-                            </p>
                             {voteEntries.length > 0 && (
-                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                                {voteEntries.map(([pid, vote]) => (
-                                  <span key={pid} className="text-xs" style={{ color: 'var(--muted)' }}>
-                                    {nameOf(pid)}: {formatVoteCells(vote)}
-                                  </span>
-                                ))}
-                              </div>
+                              <p className="text-xs mt-0.5" style={{ color: 'var(--subtle)' }}>
+                                {voteEntries.map(([pid]) => nameOf(pid)).join(', ')}
+                              </p>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5">
