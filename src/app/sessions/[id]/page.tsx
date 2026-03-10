@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Nav } from '@/components/Nav';
 import type { BusyBlock, Proposal } from '@/types';
 import type { SuggestSelection } from '@/components/AvailabilityGrid';
+import { participantName, participantColor } from '@/lib/participant-names';
 
 interface Participant {
   id: string;
@@ -95,6 +96,84 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
   const now = new Date().toISOString().split('T')[0];
   const until = new Date(Date.now() + state.preferences.lookAheadDays * 86_400_000)
     .toISOString().split('T')[0];
+
+  // Hours displayed in the grid (must match AvailabilityGrid HOURS)
+  const GRID_HOURS = useMemo(() => Array.from({ length: 17 }, (_, i) => i + 6), []);
+
+  function formatProposalRange(start: string, end: string): string {
+    const s = new Date(start);
+    const e = new Date(end);
+    const weekday = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+    const time = (d: Date) => `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+    const sDay = s.toISOString().split('T')[0];
+    const eDay = e.toISOString().split('T')[0];
+    if (sDay === eDay) {
+      return `${weekday(s)} ${time(s)}\u2009\u2013\u2009${time(e)}`;
+    }
+    return `${weekday(s)} ${time(s)}\u2009\u2013\u2009${weekday(e)} ${time(e)}`;
+  }
+
+  async function voteOnProposal(proposalId: string, vote: boolean) {
+    if (!myParticipantId) return;
+    await fetch(`/api/sessions/${sessionId}/proposals/${proposalId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: myParticipantId, vote }),
+    });
+    await fetchSession();
+  }
+
+  async function dismissProposal(proposalId: string) {
+    if (!myParticipantId) return;
+    await fetch(`/api/sessions/${sessionId}/proposals/${proposalId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: myParticipantId }),
+    });
+    await fetchSession();
+  }
+
+  // Compute grid dates for hover highlighting
+  const gridDates = useMemo(() => {
+    const dates: string[] = [];
+    const cur = new Date(now + 'T00:00:00.000Z');
+    const end = new Date(until + 'T00:00:00.000Z');
+    while (cur <= end) {
+      dates.push(cur.toISOString().split('T')[0]);
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return dates;
+  }, [now, until]);
+
+  function highlightProposalCells(proposal: Proposal) {
+    const table = document.querySelector<HTMLTableElement>('.avail-grid');
+    if (!table) return;
+    const start = new Date(proposal.start);
+    const end = new Date(proposal.end);
+    const rows = table.querySelectorAll<HTMLTableRowElement>('tbody tr');
+    rows.forEach((row, ri) => {
+      const hour = GRID_HOURS[ri];
+      if (hour === undefined) return;
+      const cells = row.querySelectorAll<HTMLTableCellElement>('td.grid-cell');
+      cells.forEach((cell, ci) => {
+        const date = gridDates[ci];
+        if (!date) return;
+        const slotStart = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00.000Z`);
+        const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+        if (start < slotEnd && end > slotStart) {
+          cell.classList.add('grid-cell-proposal--highlighted');
+        }
+      });
+    });
+  }
+
+  function clearProposalHighlight() {
+    const table = document.querySelector<HTMLTableElement>('.avail-grid');
+    if (!table) return;
+    table.querySelectorAll('.grid-cell-proposal--highlighted').forEach((cell) => {
+      cell.classList.remove('grid-cell-proposal--highlighted');
+    });
+  }
 
 
   return (
@@ -186,6 +265,77 @@ export default function SessionPage({ params }: { params: Promise<{ id: string }
                   Cancel
                 </button>
               </div>
+            )}
+
+            {proposals.length > 0 && (
+              <>
+                <h2 className="text-sm font-semibold mb-3 mt-8" style={{ color: 'var(--foreground)' }}>Proposals</h2>
+                <div className="flex flex-col gap-3">
+                  {proposals.map((proposal) => {
+                    const votes = Object.values(proposal.votes);
+                    const yesCount = votes.filter(Boolean).length;
+                    const noCount = votes.filter((v) => !v).length;
+                    const myVote = myParticipantId ? proposal.votes[myParticipantId] : undefined;
+                    const isCreator = myParticipantId === proposal.createdBy;
+
+                    return (
+                      <div
+                        key={proposal.id}
+                        className="card"
+                        onMouseEnter={() => highlightProposalCells(proposal)}
+                        onMouseLeave={clearProposalHighlight}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+                              {proposal.title}
+                              <span className="font-normal" style={{ color: 'var(--subtle)' }}>
+                                {' \u2014 '}{formatProposalRange(proposal.start, proposal.end)}
+                              </span>
+                            </p>
+                            <p className="text-xs mt-1 flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
+                              <span
+                                className="inline-block w-2 h-2 rounded-full"
+                                style={{ background: participantColor(proposal.createdBy) }}
+                              />
+                              {participantName(proposal.createdBy)}
+                              <span style={{ color: 'var(--subtle)' }}>&middot;</span>
+                              <span>{yesCount} yes &middot; {noCount} no</span>
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {myParticipantId && (
+                              <>
+                                <button
+                                  className={`btn btn-sm ${myVote === true ? 'btn-primary' : 'btn-ghost'}`}
+                                  onClick={() => voteOnProposal(proposal.id, true)}
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  className={`btn btn-sm ${myVote === false ? 'btn-primary' : 'btn-ghost'}`}
+                                  onClick={() => voteOnProposal(proposal.id, false)}
+                                >
+                                  No
+                                </button>
+                              </>
+                            )}
+                            {isCreator && (
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => dismissProposal(proposal.id)}
+                                title="Dismiss proposal"
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </>
         )}
