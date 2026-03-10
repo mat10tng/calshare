@@ -228,7 +228,8 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
     for (const p of proposals) {
       for (const [pid, cells] of Object.entries(p.votes)) {
         if (!Array.isArray(cells)) continue;
-        const color = participantColor(pid);
+        const pp = participants?.find(x => x.id === pid);
+        const color = pp?.userColor || participantColor(pid);
         for (const cellKey of cells) {
           addColor(cellKey, color);
           addId(cellKey, p.id);
@@ -236,7 +237,7 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
       }
     }
     return { proposalCellMap: colorMap, proposalIdMap: idMap };
-  }, [proposals, dates]);
+  }, [proposals, dates, participants]);
 
   // Group mode: per-cell color map (excludes editable participant if editing, and hidden participants)
   const visibleParticipants = useMemo(

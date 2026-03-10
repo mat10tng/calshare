@@ -418,17 +418,21 @@ function GroupPageInner() {
                                 maxLength={100}
                               />
                             ) : (
-                              <p
-                                className="text-sm font-medium"
-                                style={{ color: 'var(--foreground)', cursor: myParticipantId ? 'text' : undefined }}
-                                onClick={(e) => {
-                                  if (!myParticipantId) return;
-                                  e.stopPropagation();
-                                  setEditingProposalId(proposal.id);
-                                  setEditingProposalTitle(proposal.title);
-                                }}
-                                title={myParticipantId ? 'Click to rename' : undefined}
-                              >
+                              <p className="text-sm font-medium flex items-center gap-1.5" style={{ color: 'var(--foreground)' }}>
+                                {myParticipantId && (
+                                  <button
+                                    className="btn btn-ghost btn-sm"
+                                    style={{ padding: '0.125rem 0.375rem', fontSize: '0.6875rem', color: 'var(--subtle)' }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingProposalId(proposal.id);
+                                      setEditingProposalTitle(proposal.title);
+                                    }}
+                                    title="Rename"
+                                  >
+                                    ✎
+                                  </button>
+                                )}
                                 {proposal.title}
                               </p>
                             )}
