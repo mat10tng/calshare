@@ -8,42 +8,41 @@ export async function POST(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { participantToken, blocks } = body as { participantToken: string; blocks: BusyBlock[] };
+  const { participantToken, personalSessionId } = body as {
+    participantToken: string;
+    personalSessionId: string;
+  };
 
-  if (!participantToken || !Array.isArray(blocks)) {
+  if (!participantToken || !personalSessionId) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
   const session = await getSession(id);
   if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
 
-  // participantToken must equal sessionId (included in join link)
   if (participantToken !== id) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 403 });
   }
 
-  const MAX_PARTICIPANTS = 20;
-  const MAX_BLOCKS_PER_PARTICIPANT = 1000;
+  // Verify personal session exists
+  const personalSession = await getSession(personalSessionId);
+  if (!personalSession) {
+    return NextResponse.json({ error: 'Personal session not found' }, { status: 400 });
+  }
 
+  const MAX_PARTICIPANTS = 20;
   if (Object.keys(session.participants).length >= MAX_PARTICIPANTS) {
     return NextResponse.json({ error: 'Session is full' }, { status: 409 });
   }
 
-  if (blocks.length > MAX_BLOCKS_PER_PARTICIPANT) {
-    return NextResponse.json({ error: 'Too many blocks' }, { status: 400 });
-  }
-
-  const safeBlocks = sanitiseBlocks(blocks);
-  for (const b of safeBlocks) {
-    if (!ISO_RE.test(b.start) || !ISO_RE.test(b.end)) {
-      return NextResponse.json({ error: 'Invalid block date format' }, { status: 400 });
-    }
-  }
-
-  const participantId = generateToken(12);
+  // Use personalSessionId as participantId so the user's color is consistent across groups
+  const participantId = personalSessionId;
   const updated: Session = {
     ...session,
-    participants: { ...session.participants, [participantId]: safeBlocks },
+    participants: {
+      ...session.participants,
+      [participantId]: { personalSessionId },
+    },
   };
   await kv.set(`session:${id}`, updated, { keepTtl: true });
   return NextResponse.json({ participantId }, { status: 201 });
@@ -83,6 +82,8 @@ export async function PUT(
     ...session,
     participants: { ...session.participants, __organizer__: safeBlocks },
   };
-  await kv.set(`session:${id}`, updated, { keepTtl: true });
+  // Refresh TTL — 90 days for personal sessions
+  const ttl = session.type === 'personal' ? 90 * 86400 : undefined;
+  await kv.set(`session:${id}`, updated, ttl ? { ex: ttl } : { keepTtl: true });
   return NextResponse.json({ ok: true });
 }

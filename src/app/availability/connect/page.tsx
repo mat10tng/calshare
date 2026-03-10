@@ -33,7 +33,6 @@ export default function ConnectPage() {
 
     if (!code || !verifier || !provider) return;
 
-    // Clean up URL and session storage
     sessionStorage.removeItem('pkce_verifier');
     sessionStorage.removeItem('oauth_provider');
     window.history.replaceState({}, '', '/availability/connect');
@@ -84,10 +83,7 @@ export default function ConnectPage() {
   async function handleIcsUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Reset the input so the same file can be re-selected
     e.target.value = '';
-
     setLoading(true);
     setError(null);
     try {
@@ -105,7 +101,7 @@ export default function ConnectPage() {
     }
   }
 
-  function handleConfirm(blocks: import('@/types').BusyBlock[]) {
+  function handleConfirm(blocks: BusyBlock[]) {
     dispatch({ type: 'ADD_BLOCKS', blocks });
     setPending(null);
     router.push('/availability');
@@ -116,51 +112,45 @@ export default function ConnectPage() {
   }
 
   return (
-    <main className="max-w-xl mx-auto py-12 px-4">
-      <h1 className="text-2xl font-bold mb-2">Connect your calendar</h1>
-      <p className="text-sm text-stone-400 mb-8">
+    <main className="page-container page-container--narrow">
+      <Link href="/availability" className="back-link">&larr; Back</Link>
+
+      <h1 className="page-title mb-2">Connect your calendar</h1>
+      <p className="page-subtitle mb-8">
         Your calendar data is processed entirely in your browser. Event details are never stored or transmitted.
       </p>
 
       {/* Primary: File upload */}
       <section className="mb-8">
-        <h2 className="text-base font-semibold mb-3">Upload a file</h2>
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--foreground)' }}>Upload a file</h2>
         <div className="flex flex-col gap-2 mb-4">
-          <a
-            href="https://calendar.google.com/calendar/r/settings/export"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors"
-          >
-            <span className="text-lg">📅</span>
-            <span>Export from Google Calendar →</span>
-          </a>
-          <a
-            href="https://outlook.live.com/calendar/0/options/calendar/SharedCalendars"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors"
-          >
-            <span className="text-lg">📧</span>
-            <span>Export from Outlook.com (personal) →</span>
-          </a>
-          <a
-            href="https://outlook.office.com/calendar/0/options/calendar/SharedCalendars"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors"
-          >
-            <span className="text-lg">🏢</span>
-            <span>Export from Microsoft 365 (work/school) →</span>
-          </a>
+          {[
+            { href: 'https://calendar.google.com/calendar/r/settings/export', label: 'Export from Google Calendar' },
+            { href: 'https://outlook.live.com/calendar/0/options/calendar/SharedCalendars', label: 'Export from Outlook.com (personal)' },
+            { href: 'https://outlook.office.com/calendar/0/options/calendar/SharedCalendars', label: 'Export from Microsoft 365 (work/school)' },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary justify-start"
+              style={{ padding: '0.75rem 1rem' }}
+            >
+              {item.label} &rarr;
+            </a>
+          ))}
         </div>
-        <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-stone-200 rounded-xl px-4 py-10 cursor-pointer hover:border-stone-300 hover:bg-stone-50 transition-colors">
+        <label
+          className="flex flex-col items-center justify-center gap-3 rounded-xl px-4 py-10 cursor-pointer transition-colors"
+          style={{ border: '2px dashed var(--border-strong)', color: 'var(--muted)' }}
+        >
           <span className="text-3xl">📂</span>
-          <span className="text-sm font-medium text-stone-600 text-center">
+          <span className="text-sm font-medium text-center" style={{ color: 'var(--muted)' }}>
             {loading ? 'Processing…' : (
               <>
                 Drop your .ics or .zip file here<br />
-                <span className="text-stone-400 font-normal">or click to browse</span>
+                <span style={{ color: 'var(--subtle)', fontWeight: 400 }}>or click to browse</span>
               </>
             )}
           </span>
@@ -172,47 +162,33 @@ export default function ConnectPage() {
             disabled={loading}
           />
         </label>
-        {error && <p className="text-sm text-stone-500 mt-2">{error}</p>}
-        <p className="text-sm text-stone-400 mt-2 text-center">
+        {error && <p className="msg-error mt-2">{error}</p>}
+        <p className="text-sm text-center mt-2" style={{ color: 'var(--subtle)' }}>
           Need step-by-step help?{' '}
-          <button onClick={() => setShowGuide(true)} className="text-stone-600 underline hover:text-stone-600">
+          <button onClick={() => setShowGuide(true)} className="underline" style={{ color: 'var(--muted)' }}>
             See export guide
           </button>
         </p>
       </section>
 
       {/* Divider */}
-      <div className="relative flex items-center mb-6">
-        <div className="flex-1 border-t border-stone-200" />
-        <span className="px-3 text-xs text-stone-400">or connect instantly</span>
-        <div className="flex-1 border-t border-stone-200" />
-      </div>
+      <div className="divider-text"><span>or connect instantly</span></div>
 
       {/* Secondary: OAuth */}
       <section className="mb-6">
         <div className="flex flex-col gap-2">
-          <button
-            onClick={handleGoogleConnect}
-            disabled={loading}
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors disabled:opacity-50"
-          >
-            <span className="text-lg">📅</span>
-            <span>Continue with Google</span>
+          <button onClick={handleGoogleConnect} disabled={loading} className="btn btn-secondary justify-start" style={{ padding: '0.75rem 1rem', opacity: loading ? 0.5 : 1 }}>
+            Continue with Google
           </button>
-          <button
-            onClick={handleMicrosoftConnect}
-            disabled={loading}
-            className="flex items-center gap-3 border rounded-lg px-4 py-3 text-sm font-medium hover:bg-stone-50 transition-colors disabled:opacity-50"
-          >
-            <span className="text-lg">📧</span>
-            <span>Continue with Microsoft / Outlook</span>
+          <button onClick={handleMicrosoftConnect} disabled={loading} className="btn btn-secondary justify-start" style={{ padding: '0.75rem 1rem', opacity: loading ? 0.5 : 1 }}>
+            Continue with Microsoft / Outlook
           </button>
         </div>
       </section>
 
-      <p className="text-center text-sm text-stone-400 mt-2">
+      <p className="text-center text-sm" style={{ color: 'var(--subtle)' }}>
         No calendar to share?{' '}
-        <Link href="/availability" className="text-stone-600 hover:underline">
+        <Link href="/availability" className="underline" style={{ color: 'var(--muted)' }}>
           Skip — I&apos;m available whenever
         </Link>
       </p>

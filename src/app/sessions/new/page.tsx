@@ -23,12 +23,11 @@ export default function NewSessionPage() {
         body: JSON.stringify({
           quorum,
           lookAheadDays: state.preferences.lookAheadDays,
+          name: groupName.trim() || undefined,
         }),
       });
       if (!res.ok) throw new Error('Failed to create session');
       const { sessionId, organizerToken } = await res.json();
-
-      dispatch({ type: 'SET_SESSION', sessionId, organizerToken });
 
       const resolvedName = groupName.trim() || `Group ${sessionId}`;
       dispatch({
@@ -42,13 +41,39 @@ export default function NewSessionPage() {
       });
       dispatch({ type: 'SET_ORGANIZER_TOKEN', sessionId, token: organizerToken });
 
-      // Submit own blocks immediately
+      // Ensure personal session exists, then join group with reference
+      let personalId: string = state.sessionId ?? '';
+      let personalToken: string = state.organizerToken ?? '';
+      if (!personalId || !personalToken) {
+        const personalRes = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quorum: 1, lookAheadDays: 14, type: 'personal' }),
+        });
+        if (!personalRes.ok) throw new Error('Failed to create personal session');
+        const personal = await personalRes.json();
+        personalId = personal.sessionId as string;
+        personalToken = personal.organizerToken as string;
+        dispatch({ type: 'SET_SESSION', sessionId: personalId, organizerToken: personalToken });
+      }
+
+      // Sync blocks to personal session
+      await fetch(`/api/sessions/${personalId}/participants`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${personalToken}`,
+        },
+        body: JSON.stringify({ blocks: state.blocks }),
+      });
+
+      // Join group with personal session reference
       await fetch(`/api/sessions/${sessionId}/participants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           participantToken: sessionId,
-          blocks: state.blocks,
+          personalSessionId: personalId,
         }),
       });
 
@@ -62,66 +87,58 @@ export default function NewSessionPage() {
   return (
     <>
       <Nav />
-      <main className="max-w-md mx-auto py-12 px-4">
-      <Link href="/availability" className="text-sm text-stone-600 hover:underline mb-6 flex items-center gap-1">
-        ← Back to availability
-      </Link>
+      <main className="page-container page-container--narrow">
+        <Link href="/availability" className="back-link">&larr; Back to availability</Link>
 
-      <h1 className="text-2xl font-bold mb-2">New Group Session</h1>
-      <p className="text-sm text-stone-400 mb-8">
-        Create a scheduling session and share an invite link. Participants submit their anonymised availability — you see when everyone is free.
-      </p>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">
-          Group name <span className="text-stone-400 font-normal">(optional)</span>
-        </label>
-        <input
-          type="text"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          placeholder="e.g. Team standup sync"
-          className="border rounded-lg px-3 py-2 w-full text-base"
-          maxLength={80}
-        />
-      </div>
-
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">
-          How many people need to be free?
-        </label>
-        <input
-          type="number"
-          min={1}
-          max={20}
-          value={quorum}
-          onChange={(e) => setQuorum(Math.max(1, Math.min(20, Number(e.target.value))))}
-          className="border rounded-lg px-3 py-2 w-full text-base"
-        />
-        <p className="text-xs text-stone-400 mt-1">
-          Only show times where at least {quorum} {quorum !== 1 ? 'people are' : 'person is'} available.
+        <h1 className="page-title mb-2">New Group Session</h1>
+        <p className="page-subtitle mb-8">
+          Create a scheduling session and share an invite link. Participants submit their anonymised availability — you see when everyone is free.
         </p>
-      </div>
 
-      {state.blocks.length === 0 && (
-        <div className="bg-stone-50 border border-stone-200 rounded-lg p-3 mb-4 text-sm text-stone-700">
-          No calendar connected — you&apos;ll be counted as fully available.{' '}
-          <Link href="/availability/connect" className="underline font-medium">
-            Connect one →
-          </Link>
+        <div className="mb-6">
+          <label className="label">
+            Group name <span className="label-hint">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder="e.g. Team standup sync"
+            className="input"
+            maxLength={80}
+          />
         </div>
-      )}
 
-      {error && <p className="text-sm text-stone-500 mb-4">{error}</p>}
+        <div className="mb-6">
+          <label className="label">How many people need to be free?</label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={quorum}
+            onChange={(e) => setQuorum(Math.max(1, Math.min(20, Number(e.target.value))))}
+            className="input"
+          />
+          <p className="text-xs mt-1" style={{ color: 'var(--subtle)' }}>
+            Only show times where at least {quorum} {quorum !== 1 ? 'people are' : 'person is'} available.
+          </p>
+        </div>
 
-      <button
-        onClick={handleCreate}
-        disabled={loading}
-        className="w-full bg-stone-800 text-white rounded-lg py-2.5 font-medium text-sm hover:bg-stone-700 disabled:opacity-50 transition-colors"
-      >
-        {loading ? 'Creating session…' : 'Create session & get invite link'}
-      </button>
-    </main>
+        {state.blocks.length === 0 && (
+          <div className="msg-info mb-4">
+            No calendar connected — you&apos;ll be counted as fully available.{' '}
+            <Link href="/availability/connect" className="underline font-medium" style={{ color: 'var(--foreground)' }}>
+              Connect one &rarr;
+            </Link>
+          </div>
+        )}
+
+        {error && <p className="msg-error">{error}</p>}
+
+        <button onClick={handleCreate} disabled={loading} className="btn btn-primary w-full justify-center" style={{ padding: '0.625rem 1rem' }}>
+          {loading ? 'Creating session…' : 'Create session & get invite link'}
+        </button>
+      </main>
     </>
   );
 }

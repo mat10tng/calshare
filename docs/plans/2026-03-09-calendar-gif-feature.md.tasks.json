@@ -1,0 +1,13 @@
+{
+  "planPath": "docs/plans/2026-03-09-calendar-gif-feature.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 1: Update types", "status": "pending"},
+    {"id": 1, "subject": "Task 2: Update AppContext", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 3: Create gif-catalog", "status": "pending", "blockedBy": [0]},
+    {"id": 3, "subject": "Task 4: Add rectangle-finder algorithm", "status": "pending", "blockedBy": [0]},
+    {"id": 4, "subject": "Task 5: Category picker on connect page", "status": "pending", "blockedBy": [1, 2]},
+    {"id": 5, "subject": "Task 6: GIF overlay in AvailabilityGrid", "status": "pending", "blockedBy": [2, 3]},
+    {"id": 6, "subject": "Task 7: Final integration check and GIF files", "status": "pending", "blockedBy": [4, 5]}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00.000Z"
+}

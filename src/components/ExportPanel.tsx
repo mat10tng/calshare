@@ -69,14 +69,16 @@ export function ExportPanel({ freeBlocks, title = 'Availability' }: Props) {
       <button
         onClick={downloadIcs}
         disabled={significantSlots.length === 0}
-        className="border rounded-lg px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-40 transition-colors"
+        className="btn btn-secondary btn-sm"
+        style={{ opacity: significantSlots.length === 0 ? 0.4 : 1 }}
       >
         Export .ics
       </button>
       <button
         onClick={downloadPdf}
         disabled={significantSlots.length === 0}
-        className="border rounded-lg px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-40 transition-colors"
+        className="btn btn-secondary btn-sm"
+        style={{ opacity: significantSlots.length === 0 ? 0.4 : 1 }}
       >
         Export PDF
       </button>

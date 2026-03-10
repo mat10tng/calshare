@@ -5,7 +5,7 @@ export const kv = new Redis({
   token: process.env.KV_REST_API_TOKEN!,
 });
 import bcrypt from 'bcryptjs';
-import type { Session } from '@/types';
+import type { Session, BusyBlock } from '@/types';
 
 export function generateToken(length = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -18,19 +18,24 @@ export async function createSession(opts: {
   quorum: number;
   lookAheadDays: number;
   expiryDays?: number;
+  type?: 'personal' | 'group';
+  name?: string;
 }): Promise<{ sessionId: string; organizerToken: string }> {
   const sessionId = generateToken(12);
   const organizerToken = generateToken(32);
   const hashedToken = await bcrypt.hash(organizerToken, 10);
+  const sessionType = opts.type ?? 'group';
   const session: Session = {
     sessionId,
+    type: sessionType,
+    ...(opts.name ? { name: opts.name } : {}),
     organizerToken: hashedToken,
     quorum: opts.quorum,
     lookAheadDays: opts.lookAheadDays,
     createdAt: new Date().toISOString(),
     participants: {},
   };
-  const ttl = (opts.expiryDays ?? 7) * 86400;
+  const ttl = sessionType === 'personal' ? 90 * 86400 : (opts.expiryDays ?? 7) * 86400;
   await kv.set(`session:${sessionId}`, session, { ex: ttl });
   return { sessionId, organizerToken };
 }
@@ -44,6 +49,34 @@ export async function verifyOrganizerToken(sessionId: string, token: string): Pr
 
 export async function getSession(sessionId: string): Promise<Session | null> {
   return kv.get<Session>(`session:${sessionId}`);
+}
+
+export async function resolveGroupParticipants(
+  session: Session
+): Promise<{ id: string; blocks: BusyBlock[] }[]> {
+  const entries = Object.entries(session.participants);
+  const results: { id: string; blocks: BusyBlock[] }[] = [];
+
+  for (const [pid, value] of entries) {
+    if (Array.isArray(value)) {
+      // Legacy: blocks stored directly (backward compat)
+      results.push({ id: pid, blocks: value });
+    } else if (value && typeof value === 'object' && 'personalSessionId' in value) {
+      // Reference: fetch from personal session
+      const personalSession = await getSession(value.personalSessionId);
+      if (personalSession) {
+        const blocks = personalSession.participants['__organizer__'];
+        if (Array.isArray(blocks)) {
+          results.push({ id: pid, blocks });
+        }
+      }
+    }
+  }
+  return results;
+}
+
+export async function refreshSessionTTL(sessionId: string, ttlSeconds: number): Promise<void> {
+  await kv.expire(`session:${sessionId}`, ttlSeconds);
 }
 
 export const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z)?$/;

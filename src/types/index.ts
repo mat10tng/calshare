@@ -38,16 +38,15 @@ export interface UserPreferences {
 export interface Proposal {
   id: string;           // 8-char random token
   title: string;        // e.g. "Team lunch"
-  start: string;        // ISO 8601 UTC
-  end: string;          // ISO 8601 UTC
   createdBy: string;    // participantId
   createdAt: string;    // ISO timestamp
-  votes: Record<string, boolean>; // participantId → yes/no
+  votes: Record<string, string[]>; // participantId → array of "YYYY-MM-DD:H" cell keys
 }
 
 export interface Session {
   sessionId: string;
   type: 'personal' | 'group';
+  name?: string;
   organizerToken: string;
   quorum: number;
   lookAheadDays: number;

@@ -8,13 +8,6 @@ export interface GridParticipant {
   blocks: BusyBlock[];
 }
 
-export interface SuggestSelection {
-  startDate: string;
-  startHour: number;
-  endDate: string;
-  endHour: number;
-}
-
 interface Props {
   blocks: BusyBlock[];
   fromDate: string; // YYYY-MM-DD
@@ -22,8 +15,10 @@ interface Props {
   onBlocksChange?: (blocks: BusyBlock[]) => void;
   participants?: GridParticipant[]; // group mode: per-user colored cells
   editableParticipantId?: string;   // group mode: which participant's cells are editable
+  busyColor?: string;               // override busy cell color in personal mode
   suggestMode?: boolean;
-  onSuggestSelect?: (sel: SuggestSelection) => void;
+  initialSuggestCells?: string[];   // cells to preselect when entering suggest mode
+  onSuggestCellsChange?: (cells: string[]) => void;
   proposals?: Proposal[];
 }
 
@@ -166,7 +161,7 @@ function cellBackground(colors: string[]): string {
   return `linear-gradient(to right, ${stops})`;
 }
 
-export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, participants, editableParticipantId, suggestMode, onSuggestSelect, proposals }: Props) {
+export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, participants, editableParticipantId, busyColor, suggestMode, initialSuggestCells, onSuggestCellsChange, proposals }: Props) {
   const dates = useMemo(() => getDates(fromDate, toDate), [fromDate, toDate]);
 
   // Pre-compute busy lookup — O(blocks) once, O(1) per cell
@@ -190,24 +185,51 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
   const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
   const [drag, setDrag] = useState<DragState | null>(null);
   const [hiddenPids, setHiddenPids] = useState<Set<string>>(new Set());
+
+  // Suggest mode: set of selected cell keys, toggle on click/drag just like normal editing
+  const [suggestCells, setSuggestCells] = useState<Set<string>>(new Set());
   const [suggestDrag, setSuggestDrag] = useState<DragState | null>(null);
 
-  // Build set of "date:hour" keys covered by proposals
-  const proposalCellSet = useMemo(() => {
-    const set = new Set<string>();
-    if (!proposals) return set;
+  // Initialize suggestCells when entering suggest mode
+  const prevSuggestModeRef = useRef(false);
+  useEffect(() => {
+    if (suggestMode && !prevSuggestModeRef.current) {
+      setSuggestCells(new Set(initialSuggestCells ?? []));
+    }
+    if (!suggestMode && prevSuggestModeRef.current) {
+      setSuggestCells(new Set());
+    }
+    prevSuggestModeRef.current = !!suggestMode;
+  }, [suggestMode, initialSuggestCells]);
+
+  // Build map of "date:hour" → voter colors and proposal IDs for calendar cells
+  const { proposalCellMap, proposalIdMap } = useMemo(() => {
+    const colorMap = new Map<string, string[]>();
+    const idMap = new Map<string, string[]>();
+    if (!proposals) return { proposalCellMap: colorMap, proposalIdMap: idMap };
+
+    function addColor(key: string, color: string) {
+      const existing = colorMap.get(key);
+      if (existing) { if (!existing.includes(color)) existing.push(color); }
+      else colorMap.set(key, [color]);
+    }
+    function addId(key: string, id: string) {
+      const existing = idMap.get(key);
+      if (existing) { if (!existing.includes(id)) existing.push(id); }
+      else idMap.set(key, [id]);
+    }
+
     for (const p of proposals) {
-      const start = new Date(p.start);
-      const end = new Date(p.end);
-      for (const d of dates) {
-        for (const h of HOURS) {
-          const slotStart = new Date(`${d}T${String(h).padStart(2, '0')}:00:00.000Z`);
-          const slotEnd = new Date(slotStart.getTime() + 3_600_000);
-          if (start < slotEnd && end > slotStart) set.add(`${d}:${h}`);
+      for (const [pid, cells] of Object.entries(p.votes)) {
+        if (!Array.isArray(cells)) continue;
+        const color = participantColor(pid);
+        for (const cellKey of cells) {
+          addColor(cellKey, color);
+          addId(cellKey, p.id);
         }
       }
     }
-    return set;
+    return { proposalCellMap: colorMap, proposalIdMap: idMap };
   }, [proposals, dates]);
 
   // Group mode: per-cell color map (excludes editable participant if editing, and hidden participants)
@@ -244,8 +266,20 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
   myBlocksRef.current = myBlocks;
   const suggestDragRef = useRef(suggestDrag);
   suggestDragRef.current = suggestDrag;
-  const onSuggestSelectRef = useRef(onSuggestSelect);
-  onSuggestSelectRef.current = onSuggestSelect;
+  const suggestCellsRef = useRef(suggestCells);
+  suggestCellsRef.current = suggestCells;
+  const onSuggestCellsChangeRef = useRef(onSuggestCellsChange);
+  onSuggestCellsChangeRef.current = onSuggestCellsChange;
+  const cellColorMapRef = useRef(cellColorMap);
+  cellColorMapRef.current = cellColorMap;
+  const proposalIdMapRef = useRef(proposalIdMap);
+  proposalIdMapRef.current = proposalIdMap;
+  const proposalsRef = useRef(proposals);
+  proposalsRef.current = proposals;
+  const participantsRef = useRef(participants);
+  participantsRef.current = participants;
+  const editableParticipantIdRef = useRef(editableParticipantId);
+  editableParticipantIdRef.current = editableParticipantId;
 
   const tableRef = useRef<HTMLTableElement>(null);
   useEffect(() => {
@@ -284,12 +318,15 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
         const maxRow = Math.max(sd.startRow, sd.currentRow);
         const minCol = Math.min(sd.startCol, sd.currentCol);
         const maxCol = Math.max(sd.startCol, sd.currentCol);
-        onSuggestSelectRef.current?.({
-          startDate: datesRef.current[minCol],
-          startHour: HOURS[minRow],
-          endDate: datesRef.current[maxCol],
-          endHour: HOURS[maxRow] + 1,
-        });
+        const next = new Set(suggestCellsRef.current);
+        for (let r = minRow; r <= maxRow; r++) {
+          for (let c = minCol; c <= maxCol; c++) {
+            const key = `${datesRef.current[c]}:${HOURS[r]}`;
+            if (sd.mode) next.add(key); else next.delete(key);
+          }
+        }
+        setSuggestCells(next);
+        onSuggestCellsChangeRef.current?.([...next]);
         setSuggestDrag(null);
       }
     }
@@ -308,14 +345,17 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
     );
   }
 
-  function inSuggestDragRect(row: number, col: number): boolean {
-    if (!suggestDrag) return false;
-    return (
-      row >= Math.min(suggestDrag.startRow, suggestDrag.currentRow) &&
-      row <= Math.max(suggestDrag.startRow, suggestDrag.currentRow) &&
-      col >= Math.min(suggestDrag.startCol, suggestDrag.currentCol) &&
-      col <= Math.max(suggestDrag.startCol, suggestDrag.currentCol)
-    );
+  function isSuggestHighlighted(key: string, row: number, col: number): boolean {
+    // During active drag, preview the toggle result
+    if (suggestDrag) {
+      const inRect =
+        row >= Math.min(suggestDrag.startRow, suggestDrag.currentRow) &&
+        row <= Math.max(suggestDrag.startRow, suggestDrag.currentRow) &&
+        col >= Math.min(suggestDrag.startCol, suggestDrag.currentCol) &&
+        col <= Math.max(suggestDrag.startCol, suggestDrag.currentCol);
+      if (inRect) return suggestDrag.mode;
+    }
+    return suggestCells.has(key);
   }
 
   // Only used during drag — determines cell class when dragging
@@ -346,20 +386,90 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
   // Lightweight vertical column line — DOM-direct, no React state
   const colLineRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const table = tableRef.current;
     const line = colLineRef.current;
     const wrapper = wrapperRef.current;
-    if (!table || !line || !wrapper) return;
+    const tooltip = tooltipRef.current;
+    if (!table || !line || !wrapper || !tooltip) return;
 
     let activeHeader: HTMLElement | null = null;
     const headers = table.querySelectorAll<HTMLElement>('.avail-grid__col-header');
+    let tooltipTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastTd: HTMLTableCellElement | null = null;
+
+    function showTooltip(td: HTMLTableCellElement) {
+      const row = td.closest('tr');
+      if (!row) return;
+      const ri = Array.from(row.parentElement!.children).indexOf(row);
+      const ci = td.cellIndex - 1;
+      const dates = datesRef.current;
+      if (ci < 0 || ci >= dates.length || ri < 0 || ri >= HOURS.length) return;
+
+      const date = dates[ci];
+      const hour = HOURS[ri];
+      const key = `${date}:${hour}`;
+      const h0 = String(hour).padStart(2, '0');
+      const h1 = String(hour + 1).padStart(2, '0');
+      const dayLabel = new Date(date + 'T00:00:00.000Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+      const lines: string[] = [`${dayLabel}, ${h0}:00–${h1}:00`];
+
+      // Who's busy
+      const ccm = cellColorMapRef.current;
+      if (ccm) {
+        const info = ccm.get(key);
+        const editPid = editableParticipantIdRef.current;
+        const myBusy = editPid && myBusySetRef.current ? myBusySetRef.current.has(key) : false;
+        const busyNames: string[] = [];
+        if (info) info.pids.forEach(pid => busyNames.push(participantName(pid)));
+        if (myBusy && editPid && !busyNames.some((_, i) => info?.pids[i] === editPid)) {
+          busyNames.push(participantName(editPid));
+        }
+        const totalParticipants = participantsRef.current?.length ?? 0;
+        const freeCount = totalParticipants - busyNames.length;
+        if (busyNames.length > 0) {
+          lines.push(`Busy: ${busyNames.join(', ')}`);
+        }
+        if (freeCount > 0) {
+          lines.push(`${freeCount} free`);
+        }
+      } else {
+        // Personal mode
+        const busy = busySetRef.current.has(key);
+        lines.push(busy ? 'Busy' : 'Free');
+      }
+
+      // Proposals
+      const pIds = proposalIdMapRef.current.get(key);
+      if (pIds && proposalsRef.current) {
+        const names = pIds
+          .map(id => proposalsRef.current!.find(p => p.id === id)?.title)
+          .filter(Boolean);
+        if (names.length > 0) lines.push(`Meetups: ${names.join(', ')}`);
+      }
+
+      tooltip!.textContent = lines.join(' · ');
+
+      const wrapperRect = wrapper!.getBoundingClientRect();
+      const tdRect = td.getBoundingClientRect();
+      tooltip!.style.opacity = '1';
+      tooltip!.style.left = `${tdRect.left - wrapperRect.left + tdRect.width / 2}px`;
+      tooltip!.style.top = `${tdRect.top - wrapperRect.top - 4}px`;
+    }
+
+    function hideTooltip() {
+      if (tooltipTimer) { clearTimeout(tooltipTimer); tooltipTimer = null; }
+      tooltip!.style.opacity = '0';
+      lastTd = null;
+    }
 
     function onMove(e: MouseEvent) {
-      if (dragRef.current) { line!.style.opacity = '0'; clearHeader(); return; }
+      if (dragRef.current) { line!.style.opacity = '0'; clearHeader(); hideTooltip(); return; }
       const td = (e.target as HTMLElement).closest('.grid-cell') as HTMLTableCellElement | null;
-      if (!td) { line!.style.opacity = '0'; clearHeader(); return; }
+      if (!td) { line!.style.opacity = '0'; clearHeader(); hideTooltip(); return; }
 
       // Column line
       const wrapperRect = wrapper!.getBoundingClientRect();
@@ -380,6 +490,13 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
         activeHeader = headers[colIndex];
         activeHeader.classList.add('avail-grid__col-header--active');
       }
+
+      // Tooltip with 500ms delay
+      if (td !== lastTd) {
+        hideTooltip();
+        lastTd = td;
+        tooltipTimer = setTimeout(() => showTooltip(td), 500);
+      }
     }
 
     function clearHeader() {
@@ -392,6 +509,7 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
     function onLeave() {
       line!.style.opacity = '0';
       clearHeader();
+      hideTooltip();
     }
 
     table.addEventListener('mousemove', onMove);
@@ -399,6 +517,7 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
     return () => {
       table.removeEventListener('mousemove', onMove);
       table.removeEventListener('mouseleave', onLeave);
+      if (tooltipTimer) clearTimeout(tooltipTimer);
     };
   }, []);
 
@@ -410,9 +529,14 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
           ref={colLineRef}
           className="avail-grid__col-line"
         />
+        {/* Cell tooltip — positioned via mousemove with 500ms delay */}
+        <div
+          ref={tooltipRef}
+          className="avail-grid__tooltip"
+        />
         <table
           ref={tableRef}
-          className={`avail-grid text-xs border-separate min-w-full ${drag || suggestDrag ? 'select-none avail-grid--dragging' : ''}`}
+          className={`avail-grid text-xs border-separate min-w-full ${drag || suggestDrag ? 'select-none avail-grid--dragging' : ''} ${suggestMode ? 'avail-grid--suggest' : ''}`}
           style={{ borderSpacing: 2 }}
         >
           <thead>
@@ -440,13 +564,16 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
                 </td>
                 {dates.map((_, ci) => {
                   const key = `${dates[ci]}:${HOURS[ri]}`;
-                  const hasSuggestHighlight = suggestMode && inSuggestDragRect(ri, ci);
-                  const hasProposalDot = proposalCellSet.has(key);
+                  const hasSuggestHighlight = suggestMode && isSuggestHighlighted(key, ri, ci);
+                  const proposalColors = proposalCellMap.get(key);
+                  const proposalIds = proposalIdMap.get(key);
+                  const hasProposalDot = !!proposalColors;
                   const needsRelative = hasProposalDot;
 
-                  // Suggest mode mouse handlers
+                  // Suggest mode mouse handlers — toggle cells like normal editing
                   const suggestMouseDown = suggestMode ? () => {
-                    setSuggestDrag({ startRow: ri, startCol: ci, currentRow: ri, currentCol: ci, mode: true });
+                    const isSelected = suggestCells.has(key);
+                    setSuggestDrag({ startRow: ri, startCol: ci, currentRow: ri, currentCol: ci, mode: !isSelected });
                   } : undefined;
                   const suggestMouseEnter = suggestDrag ? () => {
                     setSuggestDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null);
@@ -481,11 +608,13 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
                           ...(suggestMode ? { cursor: 'pointer' } : undefined),
                         }}
                         data-pids={hasColors ? pids.join(' ') : undefined}
-                        data-proposal={hasProposalDot ? '' : undefined}
+                        data-proposals={proposalIds ? proposalIds.join(' ') : undefined}
                         onMouseDown={suggestMode ? suggestMouseDown : () => handleCellMouseDown(ri, ci)}
                         onMouseEnter={suggestDrag ? suggestMouseEnter : (drag ? () => setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null) : undefined)}
                       >
-                        {hasProposalDot && <div className="grid-cell-proposal-dot" />}
+                        {hasProposalDot && proposalColors!.map((c, i) => (
+                          <div key={i} className="grid-cell-proposal-dot" style={{ background: c, right: 2 + i * 5 }} />
+                        ))}
                       </td>
                     );
                   }
@@ -507,18 +636,22 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
                           ...(suggestMode ? { cursor: 'pointer' } : undefined),
                         }}
                         data-pids={info ? info.pids.join(' ') : undefined}
-                        data-proposal={hasProposalDot ? '' : undefined}
+                        data-proposals={proposalIds ? proposalIds.join(' ') : undefined}
                         onMouseDown={suggestMouseDown}
                         onMouseEnter={suggestMouseEnter}
                       >
-                        {hasProposalDot && <div className="grid-cell-proposal-dot" />}
+                        {hasProposalDot && proposalColors!.map((c, i) => (
+                          <div key={i} className="grid-cell-proposal-dot" style={{ background: c, right: 2 + i * 5 }} />
+                        ))}
                       </td>
                     );
                   }
 
                   // Personal mode: drag to edit
+                  const baseCls = drag ? dragCellClass(ri, ci) : staticCellClass(ci, ri);
+                  const isBusy = baseCls.includes('busy');
                   const cls = [
-                    drag ? dragCellClass(ri, ci) : staticCellClass(ci, ri),
+                    busyColor && isBusy ? 'grid-cell grid-cell-group' : baseCls,
                     hasSuggestHighlight ? 'grid-cell-suggest' : '',
                   ].filter(Boolean).join(' ');
                   return (
@@ -526,14 +659,17 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
                       key={ci}
                       className={cls}
                       style={{
+                        ...(busyColor && isBusy ? { background: busyColor, borderColor: 'transparent' } : undefined),
                         ...(needsRelative ? { position: 'relative' as const } : undefined),
                         ...(suggestMode ? { cursor: 'pointer' } : undefined),
                       }}
-                      data-proposal={hasProposalDot ? '' : undefined}
+                      data-proposals={proposalIds ? proposalIds.join(' ') : undefined}
                       onMouseDown={suggestMode ? suggestMouseDown : () => handleCellMouseDown(ri, ci)}
                       onMouseEnter={suggestDrag ? suggestMouseEnter : (drag ? () => setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null) : undefined)}
                     >
-                      {hasProposalDot && <div className="grid-cell-proposal-dot" />}
+                      {hasProposalDot && proposalColors!.map((c, i) => (
+                          <div key={i} className="grid-cell-proposal-dot" style={{ background: c, right: 2 + i * 5 }} />
+                        ))}
                     </td>
                   );
                 })}
@@ -596,7 +732,7 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
         ) : (
           <>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'var(--slot-busy)' }} /> Busy
+              <span className="w-3 h-3 rounded-sm inline-block" style={{ background: busyColor || 'var(--slot-busy)' }} /> Busy
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'var(--slot-free)', border: '1px solid var(--border)' }} /> Free

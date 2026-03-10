@@ -8,5 +8,5 @@ export async function GET(
   const { id } = await params;
   const session = await getSession(id);
   if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-  return NextResponse.json({ sessionId: session.sessionId, lookAheadDays: session.lookAheadDays });
+  return NextResponse.json({ sessionId: session.sessionId, lookAheadDays: session.lookAheadDays, name: session.name ?? null });
 }

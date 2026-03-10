@@ -7,9 +7,10 @@ interface Props {
   groups: GroupEntry[];
   onRename: (sessionId: string, name: string) => void;
   onLeave: (sessionId: string) => void;
+  onCreateClick?: () => void;
 }
 
-export function GroupsList({ groups, onRename, onLeave }: Props) {
+export function GroupsList({ groups, onRename, onLeave, onCreateClick }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [leavingId, setLeavingId] = useState<string | null>(null);
@@ -33,19 +34,36 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
-  if (groups.length === 0) return null;
-
   return (
     <section className="mt-10">
-      <div className="mb-3">
-        <h2 className="text-base font-semibold">Your Groups</h2>
+      <div className="flex items-center gap-2 mb-3">
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Groups</h2>
+        {onCreateClick && (
+          <button
+            className="inline-flex items-center justify-center w-5 h-5 rounded text-sm leading-none"
+            style={{ color: 'var(--subtle)', border: '1px solid var(--border)' }}
+            onClick={onCreateClick}
+            title="Create a new group"
+          >
+            +
+          </button>
+        )}
       </div>
-      <ul className="divide-y border rounded-xl overflow-hidden">
-        {groups.map((group) => (
-          <li key={group.sessionId} className="px-4 py-3 bg-white">
+      {groups.length === 0 ? (
+        <p className="text-xs" style={{ color: 'var(--subtle)' }}>No groups yet</p>
+      ) : (
+      <ul className="overflow-hidden rounded-xl" style={{ border: '1px solid var(--border)' }}>
+        {groups.map((group, i) => (
+          <li
+            key={group.sessionId}
+            className="px-4 py-3"
+            style={{
+              background: 'var(--card-bg)',
+              borderTop: i > 0 ? '1px solid var(--border)' : undefined,
+            }}
+          >
             {/* Name row */}
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-base">🗓</span>
               {editingId === group.sessionId ? (
                 <input
                   autoFocus
@@ -56,56 +74,47 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
                     if (e.key === 'Enter') commitRename(group.sessionId);
                     if (e.key === 'Escape') setEditingId(null);
                   }}
-                  className="flex-1 border rounded px-2 py-0.5 text-sm"
+                  className="input flex-1"
+                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.8125rem' }}
                 />
               ) : (
-                <span className="flex-1 text-sm font-medium">{group.name}</span>
+                <span className="flex-1 text-sm font-medium" style={{ color: 'var(--foreground)' }}>{group.name}</span>
               )}
-              <span className="text-xs text-stone-400 capitalize">{group.role}</span>
-              <span className="text-xs text-stone-400">
+              <span className="text-xs capitalize" style={{ color: 'var(--subtle)' }}>{group.role}</span>
+              <span className="text-xs" style={{ color: 'var(--subtle)' }}>
                 {new Date(group.joinedAt).toLocaleDateString()}
               </span>
             </div>
             {/* Action row */}
             <div className="flex gap-2 flex-wrap">
-              <Link
-                href={`/sessions/${group.sessionId}`}
-                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
-              >
+              <Link href={`/sessions/${group.sessionId}`} className="btn btn-secondary btn-sm">
                 Open
               </Link>
-              <button
-                onClick={() => copyLink(group.sessionId)}
-                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
-              >
+              <button onClick={() => copyLink(group.sessionId)} className="btn btn-secondary btn-sm">
                 {copiedId === group.sessionId ? '✓ Copied' : 'Copy link'}
               </button>
-              <button
-                onClick={() => startRename(group)}
-                className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
-              >
+              <button onClick={() => startRename(group)} className="btn btn-ghost btn-sm">
                 Rename
               </button>
               {leavingId === group.sessionId ? (
                 <>
-                  <span className="text-xs text-stone-400 self-center">Remove from list?</span>
+                  <span className="text-xs self-center" style={{ color: 'var(--subtle)' }}>Remove from list?</span>
                   <button
                     onClick={() => { onLeave(group.sessionId); setLeavingId(null); }}
-                    className="text-xs border border-stone-300 text-stone-500 rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
+                    className="btn btn-sm"
+                    style={{ background: 'var(--surface)', color: 'var(--error)' }}
                   >
                     Yes, remove
                   </button>
-                  <button
-                    onClick={() => setLeavingId(null)}
-                    className="text-xs border rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
-                  >
+                  <button onClick={() => setLeavingId(null)} className="btn btn-ghost btn-sm">
                     Cancel
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => setLeavingId(group.sessionId)}
-                  className="text-xs border border-stone-300 text-stone-500 rounded-lg px-2.5 py-1 hover:bg-stone-50 transition-colors"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: 'var(--subtle)' }}
                 >
                   Leave
                 </button>
@@ -114,6 +123,7 @@ export function GroupsList({ groups, onRename, onLeave }: Props) {
           </li>
         ))}
       </ul>
+      )}
     </section>
   );
 }

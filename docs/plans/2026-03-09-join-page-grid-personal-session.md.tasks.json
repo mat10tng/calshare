@@ -1,0 +1,9 @@
+{
+  "planPath": "docs/plans/2026-03-09-join-page-grid-personal-session.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Public session API endpoint", "status": "completed"},
+    {"id": 1, "subject": "Task 1: /u/[id] public availability page", "status": "completed", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 2: Rewrite join page with inline grid + personal session creation", "status": "completed", "blockedBy": [0]}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00.000Z"
+}

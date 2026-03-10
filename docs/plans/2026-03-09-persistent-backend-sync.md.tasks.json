@@ -1,0 +1,16 @@
+{
+  "planPath": "docs/plans/2026-03-09-persistent-backend-sync.md",
+  "tasks": [
+    {"id": 1, "subject": "Task 1: Update Session type with type field and participant references", "status": "pending"},
+    {"id": 2, "subject": "Task 2: Update session.ts — type param, resolveGroupParticipants, TTL refresh", "status": "pending", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: POST /api/sessions accepts type parameter", "status": "pending", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 4: GET /api/sessions/[id] resolves participant references", "status": "pending", "blockedBy": [2]},
+    {"id": 5, "subject": "Task 5: POST participants accepts personalSessionId, PUT refreshes TTL", "status": "pending", "blockedBy": [2]},
+    {"id": 6, "subject": "Task 6: Remove PATCH participant endpoint", "status": "pending", "blockedBy": [5]},
+    {"id": 7, "subject": "Task 7: AppContext auto-syncs blocks to personal session backend", "status": "pending", "blockedBy": [3]},
+    {"id": 8, "subject": "Task 8: Group session page removes myBlocks overlay", "status": "pending", "blockedBy": [4]},
+    {"id": 9, "subject": "Task 9: Join page sends personalSessionId instead of blocks", "status": "pending", "blockedBy": [5, 7]},
+    {"id": 10, "subject": "Task 10: Build verification and smoke test", "status": "pending", "blockedBy": [7, 8, 9]}
+  ],
+  "lastUpdated": "2026-03-09T00:00:00Z"
+}

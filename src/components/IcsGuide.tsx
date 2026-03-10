@@ -8,20 +8,20 @@ interface Props {
 
 const PROVIDERS = {
   google: {
-    label: '📅 Google Calendar',
+    label: 'Google Calendar',
     exportUrl: 'https://calendar.google.com/calendar/r/settings/export',
     steps: [
-      'Click "Open export page →" below — it takes you straight there',
+      'Click "Open export page" below — it takes you straight there',
       'Click the blue Export button — downloads a .zip file',
       'Unzip the downloaded file to find your .ics files',
       'Upload the .ics file using the button below',
     ],
   },
   outlook: {
-    label: '📧 Outlook.com (personal)',
+    label: 'Outlook.com',
     exportUrl: 'https://outlook.live.com/calendar/0/options/calendar/SharedCalendars',
     steps: [
-      'Click "Open export page →" below',
+      'Click "Open export page" below',
       'Under "Publish a calendar", select your calendar and set permissions to "Can view all details"',
       'Click Publish — an ICS link appears below the button',
       'Click the ICS link to download the .ics file',
@@ -29,10 +29,10 @@ const PROVIDERS = {
     ],
   },
   office365: {
-    label: '🏢 Microsoft 365 (work/school)',
+    label: 'Microsoft 365',
     exportUrl: 'https://outlook.office.com/calendar/0/options/calendar/SharedCalendars',
     steps: [
-      'Click "Open export page →" below',
+      'Click "Open export page" below',
       'Under "Publish a calendar", select your calendar and set permissions to "Can view all details"',
       'Click Publish — an ICS link appears below the button',
       'Click the ICS link to download the .ics file',
@@ -54,26 +54,27 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4"
+      className="modal-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ics-guide-title"
     >
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+      <div className="modal-panel">
         <div className="flex justify-between items-start mb-4">
-          <h2 id="ics-guide-title" className="text-lg font-semibold">
+          <h2 id="ics-guide-title" className="text-lg font-semibold" style={{ color: 'var(--foreground)' }}>
             Export your calendar manually
           </h2>
           <button
             onClick={onClose}
             aria-label="Close guide"
-            className="text-stone-400 hover:text-stone-500 text-xl leading-none"
+            className="text-xl leading-none"
+            style={{ color: 'var(--subtle)' }}
           >
-            ×
+            &times;
           </button>
         </div>
 
-        <p className="text-sm text-stone-500 mb-5">
+        <p className="text-sm mb-5" style={{ color: 'var(--muted)' }}>
           No OAuth needed — export your calendar yourself and upload the file.
           Your raw event data never leaves your device.
         </p>
@@ -84,7 +85,8 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
               <button
                 key={key}
                 onClick={() => setProvider(key)}
-                className="flex-1 border rounded-lg p-4 hover:bg-stone-50 text-sm font-medium text-center transition-colors"
+                className="btn btn-secondary flex-1 justify-center text-center"
+                style={{ padding: '1rem', flexDirection: 'column', gap: '0.25rem' }}
               >
                 {PROVIDERS[key].label}
               </button>
@@ -92,40 +94,36 @@ export function IcsGuide({ onClose, onFileReady }: Props) {
           </div>
         ) : (
           <>
-            <button
-              onClick={() => setProvider(null)}
-              className="text-sm text-stone-600 hover:underline mb-4 flex items-center gap-1"
-            >
-              ← Back
+            <button onClick={() => setProvider(null)} className="back-link">
+              &larr; Back
             </button>
             <a
               href={PROVIDERS[provider].exportUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-stone-800 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-stone-700 transition-colors mb-5"
+              className="btn btn-primary w-full justify-center mb-5"
             >
-              Open export page →
+              Open export page &rarr;
             </a>
             <ol className="space-y-2 mb-5">
               {PROVIDERS[provider].steps.map((step, i) => (
                 <li key={i} className="flex gap-3 text-sm">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-stone-100 text-stone-700 text-xs font-semibold flex items-center justify-center">
+                  <span
+                    className="flex-shrink-0 w-5 h-5 rounded-full text-xs font-semibold flex items-center justify-center"
+                    style={{ background: 'var(--surface)', color: 'var(--foreground)' }}
+                  >
                     {i + 1}
                   </span>
-                  <span className="text-stone-600">{step}</span>
+                  <span style={{ color: 'var(--muted)' }}>{step}</span>
                 </li>
               ))}
             </ol>
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-stone-200 rounded-lg px-4 py-4 cursor-pointer hover:border-stone-400 hover:bg-stone-50 transition-colors">
-              <span className="text-sm font-medium text-stone-700">
-                Upload your .ics file
-              </span>
-              <input
-                type="file"
-                accept=".ics"
-                className="sr-only"
-                onChange={handleFile}
-              />
+            <label
+              className="flex items-center justify-center gap-2 rounded-lg px-4 py-4 cursor-pointer transition-colors"
+              style={{ border: '2px dashed var(--border-strong)', color: 'var(--foreground)' }}
+            >
+              <span className="text-sm font-medium">Upload your .ics file</span>
+              <input type="file" accept=".ics" className="sr-only" onChange={handleFile} />
             </label>
           </>
         )}

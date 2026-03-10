@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useReducer, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BusyBlock, CalendarSource, UserPreferences, GroupEntry } from '@/types';
 
 const DEFAULT_PREFS: UserPreferences = {
@@ -23,6 +23,8 @@ interface AppState {
   preferences: UserPreferences;
   sessionId: string | null;
   organizerToken: string | null;
+  displayName: string | null;
+  userColor: string | null;
   groups: GroupEntry[];
   organizerTokens: Record<string, string>;
 }
@@ -39,7 +41,9 @@ type Action =
   | { type: 'ADD_GROUP'; group: GroupEntry }
   | { type: 'UPDATE_GROUP'; sessionId: string; changes: Partial<GroupEntry> }
   | { type: 'REMOVE_GROUP'; sessionId: string }
-  | { type: 'SET_ORGANIZER_TOKEN'; sessionId: string; token: string };
+  | { type: 'SET_ORGANIZER_TOKEN'; sessionId: string; token: string }
+  | { type: 'SET_DISPLAY_NAME'; name: string | null }
+  | { type: 'SET_USER_COLOR'; color: string | null };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -84,6 +88,10 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         organizerTokens: { ...state.organizerTokens, [action.sessionId]: action.token },
       };
+    case 'SET_DISPLAY_NAME':
+      return { ...state, displayName: action.name };
+    case 'SET_USER_COLOR':
+      return { ...state, userColor: action.color };
     default:
       return state;
   }
@@ -95,6 +103,8 @@ const INITIAL_STATE: AppState = {
   preferences: DEFAULT_PREFS,
   sessionId: null,
   organizerToken: null,
+  displayName: null,
+  userColor: null,
   groups: [],
   organizerTokens: {},
 };
@@ -104,6 +114,58 @@ const AppContext = createContext<{
   dispatch: React.Dispatch<Action>;
   hydrated: boolean;
 } | null>(null);
+
+let personalSessionPromise: Promise<{ sessionId: string; organizerToken: string } | null> | null = null;
+
+async function ensurePersonalSession(
+  state: AppState,
+  dispatch: React.Dispatch<Action>,
+): Promise<{ sessionId: string; organizerToken: string } | null> {
+  if (state.sessionId && state.organizerToken) {
+    return { sessionId: state.sessionId, organizerToken: state.organizerToken };
+  }
+  // Deduplicate concurrent creation attempts
+  if (personalSessionPromise) return personalSessionPromise;
+  personalSessionPromise = (async () => {
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quorum: 1, lookAheadDays: 14, type: 'personal' }),
+      });
+      if (!res.ok) return null;
+      const { sessionId, organizerToken } = await res.json();
+      dispatch({ type: 'SET_SESSION', sessionId, organizerToken });
+      return { sessionId, organizerToken };
+    } catch {
+      return null;
+    } finally {
+      personalSessionPromise = null;
+    }
+  })();
+  return personalSessionPromise;
+}
+
+async function syncBlocksToBackend(
+  blocks: BusyBlock[],
+  state: AppState,
+  dispatch: React.Dispatch<Action>,
+): Promise<void> {
+  const creds = await ensurePersonalSession(state, dispatch);
+  if (!creds) return;
+  try {
+    await fetch(`/api/sessions/${creds.sessionId}/participants`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${creds.organizerToken}`,
+      },
+      body: JSON.stringify({ blocks }),
+    });
+  } catch (err) {
+    console.warn('Failed to sync blocks to backend:', err);
+  }
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
@@ -141,6 +203,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_ORGANIZER_TOKEN', sessionId, token })
         );
       }
+      const savedDisplayName = localStorage.getItem('calshare:displayName');
+      if (savedDisplayName) dispatch({ type: 'SET_DISPLAY_NAME', name: savedDisplayName });
+      const savedUserColor = localStorage.getItem('calshare:userColor');
+      if (savedUserColor) dispatch({ type: 'SET_USER_COLOR', color: savedUserColor });
     } catch {
       // localStorage unavailable or invalid JSON — use defaults
     }
@@ -159,6 +225,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('calshare:blocks', JSON.stringify(state.blocks));
     } catch { /* ignore */ }
   }, [state.blocks]);
+
+  // Ref to always read latest state (avoids stale closures in debounced sync)
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // Sync blocks to backend on every change
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    if (!hydrated) return;
+    clearTimeout(syncTimeoutRef.current);
+    syncTimeoutRef.current = setTimeout(() => {
+      syncBlocksToBackend(stateRef.current.blocks, stateRef.current, dispatch);
+    }, 500);
+    return () => clearTimeout(syncTimeoutRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.blocks, hydrated]);
 
   useEffect(() => {
     try {
@@ -189,6 +271,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('calshare:organizerTokens', JSON.stringify(state.organizerTokens));
     } catch { /* ignore */ }
   }, [state.organizerTokens]);
+
+  useEffect(() => {
+    try {
+      if (state.displayName) localStorage.setItem('calshare:displayName', state.displayName);
+      else localStorage.removeItem('calshare:displayName');
+    } catch { /* ignore */ }
+  }, [state.displayName]);
+
+  useEffect(() => {
+    try {
+      if (state.userColor) localStorage.setItem('calshare:userColor', state.userColor);
+      else localStorage.removeItem('calshare:userColor');
+    } catch { /* ignore */ }
+  }, [state.userColor]);
 
   return (
     <AppContext.Provider value={{ state, dispatch, hydrated }}>

@@ -28,16 +28,16 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
 
   if (error) {
     return (
-      <main className="max-w-md mx-auto py-16 px-4 text-center">
-        <p className="text-stone-400 text-sm">{error}</p>
+      <main className="page-container page-container--narrow text-center" style={{ paddingTop: '4rem' }}>
+        <p className="text-sm" style={{ color: 'var(--subtle)' }}>{error}</p>
       </main>
     );
   }
 
   if (!data) {
     return (
-      <main className="max-w-md mx-auto py-16 px-4 text-center">
-        <p className="text-stone-400 text-sm">Loading…</p>
+      <main className="page-container page-container--narrow text-center" style={{ paddingTop: '4rem' }}>
+        <p className="text-sm" style={{ color: 'var(--subtle)' }}>Loading…</p>
       </main>
     );
   }
@@ -49,9 +49,9 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
   const busyCount = data.blocks.filter((b) => b.busy).length;
 
   return (
-    <main className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-2xl font-bold mb-1">Availability</h1>
-      <p className="text-sm text-stone-400 mb-8">
+    <main className="page-container">
+      <h1 className="page-title mb-1">Availability</h1>
+      <p className="page-subtitle mb-8">
         Next {data.lookAheadDays} days · {busyCount} busy times (event details hidden)
       </p>
 
@@ -61,13 +61,10 @@ export default function PublicAvailabilityPage({ params }: { params: Promise<{ i
         toDate={until}
       />
 
-      <div className="mt-10 pt-8 border-t border-stone-100 text-center">
-        <p className="text-sm text-stone-500 mb-3">Want to find a time together?</p>
-        <Link
-          href="/sessions/new"
-          className="inline-block bg-stone-800 text-white rounded-xl px-5 py-2.5 text-sm font-semibold hover:bg-stone-700 transition-colors"
-        >
-          Create a group session →
+      <div className="mt-10 pt-8 text-center" style={{ borderTop: '1px solid var(--border)' }}>
+        <p className="text-sm mb-3" style={{ color: 'var(--muted)' }}>Want to find a time together?</p>
+        <Link href="/sessions/new" className="btn btn-primary">
+          Create a group session &rarr;
         </Link>
       </div>
     </main>

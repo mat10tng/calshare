@@ -1,13 +1,32 @@
 import { NextResponse } from 'next/server';
 import { kv, getSession, verifyOrganizerToken, resolveGroupParticipants } from '@/lib/session';
+import type { Session } from '@/types';
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getSession(id);
+  let session = await getSession(id);
   if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+
+  // Migrate legacy participants: re-key from random token to personalSessionId
+  let migrated = false;
+  const newParticipants = { ...session.participants };
+  for (const [pid, value] of Object.entries(newParticipants)) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && 'personalSessionId' in value) {
+      const psid = (value as { personalSessionId: string }).personalSessionId;
+      if (pid !== psid) {
+        delete newParticipants[pid];
+        newParticipants[psid] = value;
+        migrated = true;
+      }
+    }
+  }
+  if (migrated) {
+    session = { ...session, participants: newParticipants };
+    await kv.set(`session:${id}`, session, { keepTtl: true });
+  }
 
   const participants = await resolveGroupParticipants(session);
 
@@ -20,6 +39,7 @@ export async function GET(
   }
 
   return NextResponse.json({
+    name: session.name ?? null,
     participants,
     quorum: session.quorum,
     lookAheadDays: session.lookAheadDays,

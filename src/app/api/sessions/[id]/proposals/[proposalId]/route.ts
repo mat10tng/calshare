@@ -2,16 +2,29 @@ import { NextResponse } from 'next/server';
 import { kv, getSession } from '@/lib/session';
 import type { Session } from '@/types';
 
+const CELL_RE = /^\d{4}-\d{2}-\d{2}:\d{1,2}$/;
+
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string; proposalId: string }> }
 ) {
   const { id, proposalId } = await params;
   const body = await req.json();
-  const { participantId, vote } = body as { participantId: string; vote: boolean };
+  const { participantId, cells } = body as {
+    participantId: string;
+    cells: string[];
+  };
 
-  if (!participantId || typeof vote !== 'boolean') {
-    return NextResponse.json({ error: 'participantId and vote (boolean) are required' }, { status: 400 });
+  if (!participantId || !Array.isArray(cells)) {
+    return NextResponse.json({ error: 'participantId and cells[] are required' }, { status: 400 });
+  }
+  if (cells.length > 500) {
+    return NextResponse.json({ error: 'Too many cells' }, { status: 400 });
+  }
+  for (const c of cells) {
+    if (!CELL_RE.test(c)) {
+      return NextResponse.json({ error: `Invalid cell format: ${c}` }, { status: 400 });
+    }
   }
 
   const session = await getSession(id);
@@ -28,7 +41,7 @@ export async function PUT(
   }
 
   const proposal = { ...proposals[proposalIndex] };
-  proposal.votes = { ...proposal.votes, [participantId]: vote };
+  proposal.votes = { ...proposal.votes, [participantId]: cells };
 
   const updatedProposals = [...proposals];
   updatedProposals[proposalIndex] = proposal;
