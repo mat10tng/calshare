@@ -11,6 +11,8 @@ import { participantName, participantColor } from '@/lib/participant-names';
 interface Participant {
   id: string;
   blocks: BusyBlock[];
+  displayName?: string;
+  userColor?: string;
 }
 
 const EMPTY_BLOCKS: BusyBlock[] = [];
@@ -213,6 +215,11 @@ function GroupPageInner() {
     return parts.join(', ');
   }
 
+  function nameOf(pid: string) {
+    const p = participants.find(pp => pp.id === pid);
+    return p?.displayName || participantName(pid);
+  }
+
   const now = new Date().toISOString().split('T')[0];
   const until = new Date(Date.now() + state.preferences.lookAheadDays * 86_400_000)
     .toISOString().split('T')[0];
@@ -394,14 +401,14 @@ function GroupPageInner() {
                               {proposal.title}
                             </p>
                             <p className="text-xs mt-0.5" style={{ color: 'var(--subtle)' }}>
-                              {participantName(proposal.createdBy)}
+                              {nameOf(proposal.createdBy)}
                               {voteEntries.length > 0 && ` · ${voteEntries.length} response${voteEntries.length !== 1 ? 's' : ''}`}
                             </p>
                             {voteEntries.length > 0 && (
                               <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
                                 {voteEntries.map(([pid, vote]) => (
                                   <span key={pid} className="text-xs" style={{ color: 'var(--muted)' }}>
-                                    {participantName(pid)}: {formatVoteCells(vote)}
+                                    {nameOf(pid)}: {formatVoteCells(vote)}
                                   </span>
                                 ))}
                               </div>

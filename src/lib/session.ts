@@ -53,9 +53,9 @@ export async function getSession(sessionId: string): Promise<Session | null> {
 
 export async function resolveGroupParticipants(
   session: Session
-): Promise<{ id: string; blocks: BusyBlock[] }[]> {
+): Promise<{ id: string; blocks: BusyBlock[]; displayName?: string; userColor?: string }[]> {
   const entries = Object.entries(session.participants);
-  const results: { id: string; blocks: BusyBlock[] }[] = [];
+  const results: { id: string; blocks: BusyBlock[]; displayName?: string; userColor?: string }[] = [];
 
   for (const [pid, value] of entries) {
     if (Array.isArray(value)) {
@@ -67,7 +67,12 @@ export async function resolveGroupParticipants(
       if (personalSession) {
         const blocks = personalSession.participants['__organizer__'];
         if (Array.isArray(blocks)) {
-          results.push({ id: pid, blocks });
+          results.push({
+            id: pid,
+            blocks,
+            displayName: personalSession.displayName,
+            userColor: personalSession.userColor,
+          });
         }
       }
     }

@@ -6,6 +6,8 @@ import type { BusyBlock, Proposal } from '@/types';
 export interface GridParticipant {
   id: string;
   blocks: BusyBlock[];
+  displayName?: string;
+  userColor?: string;
 }
 
 interface Props {
@@ -122,7 +124,7 @@ function buildParticipantCellMap(
   const map = new Map<string, CellInfo>();
   const dateSet = new Set(dates);
   for (const p of participants) {
-    const color = participantColor(p.id);
+    const color = p.userColor || participantColor(p.id);
     for (const b of p.blocks) {
       if (!b.busy) continue;
       const start = new Date(b.start);
@@ -178,8 +180,12 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
   );
   const myBlocks = useMemo(() => myParticipant?.blocks ?? [], [myParticipant]);
   const myColor = useMemo(
-    () => editableParticipantId ? participantColor(editableParticipantId) : '',
-    [editableParticipantId],
+    () => {
+      if (!editableParticipantId) return '';
+      const mp = participants?.find(p => p.id === editableParticipantId);
+      return mp?.userColor || participantColor(editableParticipantId);
+    },
+    [editableParticipantId, participants],
   );
 
   const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
@@ -424,9 +430,13 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
         const editPid = editableParticipantIdRef.current;
         const myBusy = editPid && myBusySetRef.current ? myBusySetRef.current.has(key) : false;
         const busyNames: string[] = [];
-        if (info) info.pids.forEach(pid => busyNames.push(participantName(pid)));
+        const nameOf = (pid: string) => {
+          const p = participantsRef.current?.find(pp => pp.id === pid);
+          return p?.displayName || participantName(pid);
+        };
+        if (info) info.pids.forEach(pid => busyNames.push(nameOf(pid)));
         if (myBusy && editPid && !busyNames.some((_, i) => info?.pids[i] === editPid)) {
-          busyNames.push(participantName(editPid));
+          busyNames.push(nameOf(editPid));
         }
         const totalParticipants = participantsRef.current?.length ?? 0;
         const freeCount = totalParticipants - busyNames.length;
@@ -717,8 +727,8 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
                     });
                   }}
                 >
-                  <span className="w-3 h-3 rounded-sm inline-block" style={{ background: participantColor(p.id) }} />
-                  {participantName(p.id)}
+                  <span className="w-3 h-3 rounded-sm inline-block" style={{ background: p.userColor || participantColor(p.id) }} />
+                  {p.displayName || participantName(p.id)}
                 </span>
               );
             })}

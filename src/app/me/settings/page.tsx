@@ -14,24 +14,47 @@ export default function SettingsPage() {
   const router = useRouter();
   const prefs = state.preferences;
 
-  const currentName = state.displayName || (state.sessionId ? participantName(state.sessionId) : '');
-  const currentColor = state.userColor || (state.sessionId ? participantColor(state.sessionId) : COLOR_PALETTE[0]);
+  const autoName = state.sessionId ? participantName(state.sessionId) : '';
+  const autoColor = state.sessionId ? participantColor(state.sessionId) : COLOR_PALETTE[0];
+  const currentName = state.displayName || autoName;
+  const currentColor = state.userColor || autoColor;
 
   const [name, setName] = useState(currentName);
   const [color, setColor] = useState(currentColor);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  function saveName() {
-    const trimmed = name.trim();
-    // Only store if different from the auto-generated name
-    const autoName = state.sessionId ? participantName(state.sessionId) : '';
-    dispatch({ type: 'SET_DISPLAY_NAME', name: trimmed && trimmed !== autoName ? trimmed : null });
-  }
+  const hasChanges = name !== currentName || color !== currentColor;
 
-  function saveColor(c: string) {
-    setColor(c);
-    // Only store if different from the auto-generated color
-    const autoColor = state.sessionId ? participantColor(state.sessionId) : '';
-    dispatch({ type: 'SET_USER_COLOR', color: c !== autoColor ? c : null });
+  async function saveProfile() {
+    const trimmedName = name.trim();
+    const newName = trimmedName && trimmedName !== autoName ? trimmedName : null;
+    const newColor = color !== autoColor ? color : null;
+
+    // Update local state
+    dispatch({ type: 'SET_DISPLAY_NAME', name: newName });
+    dispatch({ type: 'SET_USER_COLOR', color: newColor });
+
+    // Save to DB
+    if (state.sessionId && state.organizerToken) {
+      setSaving(true);
+      try {
+        await fetch(`/api/sessions/${state.sessionId}/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${state.organizerToken}`,
+          },
+          body: JSON.stringify({ displayName: newName, userColor: newColor }),
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch {
+        // localStorage already updated as fallback
+      } finally {
+        setSaving(false);
+      }
+    }
   }
 
   return (
@@ -52,22 +75,20 @@ export default function SettingsPage() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onBlur={saveName}
-            onKeyDown={(e) => { if (e.key === 'Enter') saveName(); }}
             className="input"
             style={{ maxWidth: '16rem' }}
             maxLength={30}
-            placeholder={state.sessionId ? participantName(state.sessionId) : 'Your name'}
+            placeholder={autoName || 'Your name'}
           />
         </div>
 
-        <div>
+        <div className="mb-4">
           <label className="label">Color</label>
           <div className="flex flex-wrap gap-2">
             {COLOR_PALETTE.map((c) => (
               <button
                 key={c}
-                onClick={() => saveColor(c)}
+                onClick={() => setColor(c)}
                 className="w-7 h-7 rounded-full transition-all"
                 style={{
                   background: c,
@@ -76,6 +97,17 @@ export default function SettingsPage() {
               />
             ))}
           </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            className="btn btn-primary"
+            disabled={saving || !hasChanges}
+            onClick={saveProfile}
+          >
+            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
+          </button>
+          {saved && <span className="text-xs" style={{ color: 'var(--success)' }}>Visible to everyone in your groups</span>}
         </div>
       </section>
 
@@ -103,8 +135,6 @@ export default function SettingsPage() {
           ))}
         </select>
       </section>
-
-      <p className="text-xs" style={{ color: 'var(--subtle)' }}>Settings are saved automatically to your browser.</p>
     </main>
   );
 }

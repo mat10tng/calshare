@@ -55,6 +55,8 @@ export interface Session {
     [participantId: string]: BusyBlock[] | { personalSessionId: string };
   };
   proposals?: Proposal[];
+  displayName?: string;
+  userColor?: string;
 }
 
 export type IngestionPath = 'oauth-google' | 'oauth-microsoft' | 'ics-upload' | 'ics-guide';
