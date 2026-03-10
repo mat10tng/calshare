@@ -35,15 +35,27 @@ export interface UserPreferences {
   lookAheadDays: number;
 }
 
+export interface Proposal {
+  id: string;           // 8-char random token
+  title: string;        // e.g. "Team lunch"
+  start: string;        // ISO 8601 UTC
+  end: string;          // ISO 8601 UTC
+  createdBy: string;    // participantId
+  createdAt: string;    // ISO timestamp
+  votes: Record<string, boolean>; // participantId → yes/no
+}
+
 export interface Session {
   sessionId: string;
+  type: 'personal' | 'group';
   organizerToken: string;
   quorum: number;
   lookAheadDays: number;
   createdAt: string;
   participants: {
-    [participantId: string]: BusyBlock[];
+    [participantId: string]: BusyBlock[] | { personalSessionId: string };
   };
+  proposals?: Proposal[];
 }
 
 export type IngestionPath = 'oauth-google' | 'oauth-microsoft' | 'ics-upload' | 'ics-guide';
