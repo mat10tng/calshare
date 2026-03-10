@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
-import { participantName, participantColor } from '@/lib/participant-names';
+import { ProfilePopover } from './ProfilePopover';
 
 export function Nav() {
   const { state } = useApp();
@@ -22,15 +22,7 @@ export function Nav() {
         </span>
       </Link>
       <div className="flex items-center gap-4 text-sm">
-        {state.sessionId && (
-          <Link href={`/me?id=${state.sessionId}`} className="flex items-center gap-1.5 text-xs transition-colors" style={{ color: 'var(--subtle)' }}>
-            <span
-              className="w-2 h-2 rounded-full inline-block"
-              style={{ background: state.userColor || participantColor(state.sessionId) }}
-            />
-            {state.displayName || participantName(state.sessionId)}
-          </Link>
-        )}
+        <ProfilePopover />
       </div>
     </nav>
   );

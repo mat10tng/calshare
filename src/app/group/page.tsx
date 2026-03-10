@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Nav } from '@/components/Nav';
 import type { BusyBlock, Proposal } from '@/types';
 import { participantName, participantColor } from '@/lib/participant-names';
+import { ProfilePopover } from '@/components/ProfilePopover';
 
 interface Participant {
   id: string;
@@ -47,6 +48,8 @@ function GroupPageInner() {
   const [hiddenProposalIds, setHiddenProposalIds] = useState<Set<string>>(new Set());
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [editingProposalId, setEditingProposalId] = useState<string | null>(null);
+  const [editingProposalTitle, setEditingProposalTitle] = useState('');
 
   // Keep user identity in URL
   useEffect(() => {
@@ -197,6 +200,17 @@ function GroupPageInner() {
     await fetchSession();
   }
 
+  async function renameProposal(proposalId: string, title: string) {
+    if (!myParticipantId || !title.trim()) return;
+    await fetch(`/api/sessions/${groupId}/proposals/${proposalId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: myParticipantId, title: title.trim() }),
+    });
+    setEditingProposalId(null);
+    await fetchSession();
+  }
+
   function formatVoteCells(cells: string[]): string {
     if (!Array.isArray(cells) || cells.length === 0) return '—';
     const byDate = new Map<string, number[]>();
@@ -334,13 +348,7 @@ function GroupPageInner() {
                   </button>
                 </>
               ) : myParticipantId && (
-                <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--subtle)' }}>
-                  <span
-                    className="w-2 h-2 rounded-full inline-block"
-                    style={{ background: state.userColor || participantColor(myParticipantId) }}
-                  />
-                  {state.displayName || participantName(myParticipantId)}
-                </span>
+                <ProfilePopover />
               )}
             </div>
             <div ref={gridWrapperRef}>
@@ -397,9 +405,36 @@ function GroupPageInner() {
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                              {proposal.title}
-                            </p>
+                            {editingProposalId === proposal.id ? (
+                              <input
+                                className="input text-sm font-medium"
+                                style={{ padding: '0.125rem 0.375rem', maxWidth: '16rem' }}
+                                value={editingProposalTitle}
+                                onChange={(e) => setEditingProposalTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') renameProposal(proposal.id, editingProposalTitle);
+                                  if (e.key === 'Escape') setEditingProposalId(null);
+                                }}
+                                onBlur={() => renameProposal(proposal.id, editingProposalTitle)}
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                                maxLength={100}
+                              />
+                            ) : (
+                              <p
+                                className="text-sm font-medium"
+                                style={{ color: 'var(--foreground)', cursor: myParticipantId ? 'text' : undefined }}
+                                onClick={(e) => {
+                                  if (!myParticipantId) return;
+                                  e.stopPropagation();
+                                  setEditingProposalId(proposal.id);
+                                  setEditingProposalTitle(proposal.title);
+                                }}
+                                title={myParticipantId ? 'Click to rename' : undefined}
+                              >
+                                {proposal.title}
+                              </p>
+                            )}
                             <p className="text-xs mt-0.5" style={{ color: 'var(--subtle)' }}>
                               {nameOf(proposal.createdBy)}
                               {voteEntries.length > 0 && ` · ${voteEntries.length} response${voteEntries.length !== 1 ? 's' : ''}`}
@@ -434,11 +469,11 @@ function GroupPageInner() {
                                 {myVote && myVote.length > 0 ? 'Change' : 'Pick time'}
                               </button>
                             )}
-                            {isCreator && (
+                            {myParticipantId && (
                               <button
                                 className="btn btn-ghost btn-sm"
-                                onClick={() => dismissProposal(proposal.id)}
-                                title="Dismiss proposal"
+                                onClick={(e) => { e.stopPropagation(); dismissProposal(proposal.id); }}
+                                title="Dismiss meetup"
                               >
                                 &times;
                               </button>

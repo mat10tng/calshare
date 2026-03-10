@@ -10,20 +10,27 @@ export async function PUT(
 ) {
   const { id, proposalId } = await params;
   const body = await req.json();
-  const { participantId, cells } = body as {
+  const { participantId, cells, title } = body as {
     participantId: string;
-    cells: string[];
+    cells?: string[];
+    title?: string;
   };
 
-  if (!participantId || !Array.isArray(cells)) {
-    return NextResponse.json({ error: 'participantId and cells[] are required' }, { status: 400 });
+  if (!participantId) {
+    return NextResponse.json({ error: 'participantId is required' }, { status: 400 });
   }
-  if (cells.length > 500) {
-    return NextResponse.json({ error: 'Too many cells' }, { status: 400 });
-  }
-  for (const c of cells) {
-    if (!CELL_RE.test(c)) {
-      return NextResponse.json({ error: `Invalid cell format: ${c}` }, { status: 400 });
+
+  if (cells !== undefined) {
+    if (!Array.isArray(cells)) {
+      return NextResponse.json({ error: 'cells must be an array' }, { status: 400 });
+    }
+    if (cells.length > 500) {
+      return NextResponse.json({ error: 'Too many cells' }, { status: 400 });
+    }
+    for (const c of cells) {
+      if (!CELL_RE.test(c)) {
+        return NextResponse.json({ error: `Invalid cell format: ${c}` }, { status: 400 });
+      }
     }
   }
 
@@ -41,7 +48,12 @@ export async function PUT(
   }
 
   const proposal = { ...proposals[proposalIndex] };
-  proposal.votes = { ...proposal.votes, [participantId]: cells };
+  if (cells !== undefined) {
+    proposal.votes = { ...proposal.votes, [participantId]: cells };
+  }
+  if (typeof title === 'string' && title.trim()) {
+    proposal.title = title.trim().slice(0, 100);
+  }
 
   const updatedProposals = [...proposals];
   updatedProposals[proposalIndex] = proposal;
@@ -72,8 +84,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'Proposal not found' }, { status: 404 });
   }
 
-  if (proposal.createdBy !== participantId) {
-    return NextResponse.json({ error: 'Only the creator can dismiss a proposal' }, { status: 403 });
+  if (!(participantId in session.participants)) {
+    return NextResponse.json({ error: 'Participant not found in session' }, { status: 403 });
   }
 
   const updated: Session = {
