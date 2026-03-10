@@ -1,11 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Nav } from '@/components/Nav';
 import { GroupsList } from '@/components/GroupsList';
 import { participantColor } from '@/lib/participant-names';
+import type { BusyBlock, RecurringEvent } from '@/types';
 
 export default function AvailabilityPage() {
   const { state, dispatch, hydrated } = useApp();
@@ -40,6 +41,64 @@ export default function AvailabilityPage() {
   )
     .toISOString()
     .split('T')[0];
+
+  // Expand recurring events into BusyBlocks for the visible date range
+  const recurringBlocks = useMemo(() => {
+    const blocks: BusyBlock[] = [];
+    const cur = new Date(now + 'T00:00:00.000Z');
+    const end = new Date(until + 'T00:00:00.000Z');
+    while (cur <= end) {
+      const dow = cur.getUTCDay();
+      const dateStr = cur.toISOString().split('T')[0];
+      for (const ev of state.recurringEvents) {
+        if (ev.dayOfWeek === dow) {
+          const sh = String(ev.startHour).padStart(2, '0');
+          const eh = String(ev.endHour).padStart(2, '0');
+          blocks.push({
+            start: `${dateStr}T${sh}:00:00.000Z`,
+            end: `${dateStr}T${eh}:00:00.000Z`,
+            busy: true,
+            allDay: false,
+            title: ev.title,
+            sourceId: `recurring:${ev.id}`,
+          });
+        }
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return blocks;
+  }, [state.recurringEvents, now, until]);
+
+  // Merge manual blocks with recurring blocks
+  const allBlocks = useMemo(() => {
+    return [...state.blocks, ...recurringBlocks];
+  }, [state.blocks, recurringBlocks]);
+
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDay, setNewDay] = useState(1);
+  const [newStartHour, setNewStartHour] = useState(18);
+  const [newEndHour, setNewEndHour] = useState(19);
+
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
+
+  function addRecurringEvent() {
+    if (!newTitle.trim() || newStartHour >= newEndHour) return;
+    const ev: RecurringEvent = {
+      id: crypto.randomUUID().slice(0, 8),
+      title: newTitle.trim(),
+      dayOfWeek: newDay,
+      startHour: newStartHour,
+      endHour: newEndHour,
+    };
+    dispatch({ type: 'SET_RECURRING_EVENTS', events: [...state.recurringEvents, ev] });
+    setNewTitle('');
+  }
+
+  function removeRecurringEvent(id: string) {
+    dispatch({ type: 'SET_RECURRING_EVENTS', events: state.recurringEvents.filter(e => e.id !== id) });
+  }
 
   function handleRename(sessionId: string, name: string) {
     dispatch({ type: 'UPDATE_GROUP', sessionId, changes: { name } });
@@ -151,12 +210,112 @@ export default function AvailabilityPage() {
         </div>
 
         <AvailabilityGrid
-          blocks={state.blocks}
+          blocks={allBlocks}
           fromDate={now}
           toDate={until}
-          onBlocksChange={(newBlocks) => dispatch({ type: 'SET_BLOCKS', blocks: newBlocks })}
+          onBlocksChange={(newBlocks) => {
+            // Filter out recurring-sourced blocks so we only persist manual edits
+            const manual = newBlocks.filter(b => !b.sourceId?.startsWith('recurring:'));
+            dispatch({ type: 'SET_BLOCKS', blocks: manual });
+          }}
           busyColor={state.sessionId ? (state.userColor || participantColor(state.sessionId)) : undefined}
         />
+
+        {/* Recurring events */}
+        <section className="mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>Recurring</h2>
+            <button
+              className="inline-flex items-center justify-center w-5 h-5 rounded text-sm leading-none"
+              style={{ color: 'var(--subtle)', border: '1px solid var(--border)' }}
+              onClick={() => setShowRecurring(!showRecurring)}
+              title="Add recurring event"
+            >
+              +
+            </button>
+          </div>
+
+          {state.recurringEvents.length > 0 && (
+            <ul className="flex flex-col gap-1.5 mb-3">
+              {state.recurringEvents.map(ev => (
+                <li
+                  key={ev.id}
+                  className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg"
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+                >
+                  <span className="flex-1" style={{ color: 'var(--foreground)' }}>
+                    {ev.title}
+                    <span className="ml-2" style={{ color: 'var(--subtle)' }}>
+                      {DAY_NAMES[ev.dayOfWeek]} {String(ev.startHour).padStart(2, '0')}:00–{String(ev.endHour).padStart(2, '0')}:00
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => removeRecurringEvent(ev.id)}
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'var(--subtle)' }}
+                  >
+                    &times;
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {showRecurring && (
+            <div className="rounded-xl p-4 mb-3" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="flex flex-wrap gap-2 items-end">
+                <div>
+                  <label className="label">Name</label>
+                  <input
+                    type="text"
+                    value={newTitle}
+                    onChange={e => setNewTitle(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addRecurringEvent(); }}
+                    placeholder="e.g. Muay Thai"
+                    className="input"
+                    style={{ width: '10rem' }}
+                    maxLength={50}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="label">Day</label>
+                  <select value={newDay} onChange={e => setNewDay(Number(e.target.value))} className="input" style={{ width: 'auto' }}>
+                    {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">From</label>
+                  <select value={newStartHour} onChange={e => setNewStartHour(Number(e.target.value))} className="input" style={{ width: 'auto' }}>
+                    {HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">To</label>
+                  <select
+                    value={newEndHour}
+                    onChange={e => setNewEndHour(Number(e.target.value))}
+                    className="input"
+                    style={{ width: 'auto' }}
+                  >
+                    {HOURS.filter(h => h > newStartHour).map(h => (
+                      <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                    ))}
+                    <option value={23}>23:00</option>
+                  </select>
+                </div>
+                <button
+                  onClick={addRecurringEvent}
+                  disabled={!newTitle.trim() || newStartHour >= newEndHour}
+                  className="btn btn-primary btn-sm"
+                >
+                  Add
+                </button>
+                <button onClick={() => setShowRecurring(false)} className="btn btn-ghost btn-sm">Cancel</button>
+              </div>
+            </div>
+          )}
+        </section>
 
         {activePanel === 'create' && (
           <div className="card--surface rounded-xl p-4 mb-4 mt-8" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>

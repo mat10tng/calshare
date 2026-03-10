@@ -1,6 +1,32 @@
 'use client';
 import { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { BusyBlock, CalendarSource, UserPreferences, GroupEntry } from '@/types';
+import type { BusyBlock, CalendarSource, UserPreferences, GroupEntry, RecurringEvent } from '@/types';
+
+function expandRecurringEvents(events: RecurringEvent[], lookAheadDays: number): BusyBlock[] {
+  const blocks: BusyBlock[] = [];
+  const now = new Date();
+  now.setUTCHours(0, 0, 0, 0);
+  for (let d = 0; d <= lookAheadDays; d++) {
+    const date = new Date(now.getTime() + d * 86_400_000);
+    const dow = date.getUTCDay();
+    const dateStr = date.toISOString().split('T')[0];
+    for (const ev of events) {
+      if (ev.dayOfWeek === dow) {
+        const sh = String(ev.startHour).padStart(2, '0');
+        const eh = String(ev.endHour).padStart(2, '0');
+        blocks.push({
+          start: `${dateStr}T${sh}:00:00.000Z`,
+          end: `${dateStr}T${eh}:00:00.000Z`,
+          busy: true,
+          allDay: false,
+          title: ev.title,
+          sourceId: `recurring:${ev.id}`,
+        });
+      }
+    }
+  }
+  return blocks;
+}
 
 const DEFAULT_PREFS: UserPreferences = {
   workingHours: {
@@ -27,6 +53,7 @@ interface AppState {
   userColor: string | null;
   groups: GroupEntry[];
   organizerTokens: Record<string, string>;
+  recurringEvents: RecurringEvent[];
 }
 
 type Action =
@@ -43,7 +70,8 @@ type Action =
   | { type: 'REMOVE_GROUP'; sessionId: string }
   | { type: 'SET_ORGANIZER_TOKEN'; sessionId: string; token: string }
   | { type: 'SET_DISPLAY_NAME'; name: string | null }
-  | { type: 'SET_USER_COLOR'; color: string | null };
+  | { type: 'SET_USER_COLOR'; color: string | null }
+  | { type: 'SET_RECURRING_EVENTS'; events: RecurringEvent[] };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -92,6 +120,8 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, displayName: action.name };
     case 'SET_USER_COLOR':
       return { ...state, userColor: action.color };
+    case 'SET_RECURRING_EVENTS':
+      return { ...state, recurringEvents: action.events };
     default:
       return state;
   }
@@ -107,6 +137,7 @@ const INITIAL_STATE: AppState = {
   userColor: null,
   groups: [],
   organizerTokens: {},
+  recurringEvents: [],
 };
 
 const AppContext = createContext<{
@@ -203,6 +234,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_ORGANIZER_TOKEN', sessionId, token })
         );
       }
+      const savedRecurring = localStorage.getItem('calshare:recurringEvents');
+      if (savedRecurring) {
+        dispatch({ type: 'SET_RECURRING_EVENTS', events: JSON.parse(savedRecurring) });
+      }
       const savedDisplayName = localStorage.getItem('calshare:displayName');
       if (savedDisplayName) dispatch({ type: 'SET_DISPLAY_NAME', name: savedDisplayName });
       const savedUserColor = localStorage.getItem('calshare:userColor');
@@ -230,17 +265,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Sync blocks to backend on every change
+  // Sync blocks to backend on every change (manual + recurring expanded)
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (!hydrated) return;
     clearTimeout(syncTimeoutRef.current);
     syncTimeoutRef.current = setTimeout(() => {
-      syncBlocksToBackend(stateRef.current.blocks, stateRef.current, dispatch);
+      const s = stateRef.current;
+      const recurringBlocks = expandRecurringEvents(s.recurringEvents, s.preferences.lookAheadDays);
+      syncBlocksToBackend([...s.blocks, ...recurringBlocks], s, dispatch);
     }, 500);
     return () => clearTimeout(syncTimeoutRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.blocks, hydrated]);
+  }, [state.blocks, state.recurringEvents, hydrated]);
 
   useEffect(() => {
     try {
@@ -271,6 +308,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('calshare:organizerTokens', JSON.stringify(state.organizerTokens));
     } catch { /* ignore */ }
   }, [state.organizerTokens]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('calshare:recurringEvents', JSON.stringify(state.recurringEvents));
+    } catch { /* ignore */ }
+  }, [state.recurringEvents]);
 
   useEffect(() => {
     try {

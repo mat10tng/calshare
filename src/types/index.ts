@@ -59,6 +59,14 @@ export interface Session {
   userColor?: string;
 }
 
+export interface RecurringEvent {
+  id: string;
+  title: string;
+  dayOfWeek: number;  // 0=Sun, 1=Mon, ..., 6=Sat
+  startHour: number;  // 6–22
+  endHour: number;    // 7–23
+}
+
 export type IngestionPath = 'oauth-google' | 'oauth-microsoft' | 'ics-upload' | 'ics-guide';
 
 export interface GroupEntry {
