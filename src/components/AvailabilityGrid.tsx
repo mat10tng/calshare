@@ -1,14 +1,30 @@
 'use client';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { BusyBlock } from '@/types';
-import { findAllBusyRects } from '@/lib/gif-placement';
-import { randomCatGif } from '@/lib/gif-catalog';
+import { participantColor, participantName } from '@/lib/participant-names';
+import type { BusyBlock, Proposal } from '@/types';
+
+export interface GridParticipant {
+  id: string;
+  blocks: BusyBlock[];
+}
+
+export interface SuggestSelection {
+  startDate: string;
+  startHour: number;
+  endDate: string;
+  endHour: number;
+}
 
 interface Props {
   blocks: BusyBlock[];
   fromDate: string; // YYYY-MM-DD
   toDate: string;   // YYYY-MM-DD
   onBlocksChange?: (blocks: BusyBlock[]) => void;
+  participants?: GridParticipant[]; // group mode: per-user colored cells
+  editableParticipantId?: string;   // group mode: which participant's cells are editable
+  suggestMode?: boolean;
+  onSuggestSelect?: (sel: SuggestSelection) => void;
+  proposals?: Proposal[];
 }
 
 interface DragState {
@@ -33,20 +49,42 @@ function getDates(from: string, to: string): string[] {
 // Hours to display: 06:00–22:00
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
 
-function isBusy(blocks: BusyBlock[], date: string, hour: number): boolean {
-  const slotStart = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00.000Z`);
-  const slotEnd = new Date(slotStart.getTime() + 3_600_000);
-  return blocks.some(
-    (b) => b.busy && new Date(b.start) < slotEnd && new Date(b.end) > slotStart,
-  );
+// Build a Set of "date:hour" keys that are busy — O(blocks) once instead of O(blocks) per cell
+function buildBusySet(blocks: BusyBlock[], dates: string[]): Set<string> {
+  const set = new Set<string>();
+  const dateSet = new Set(dates);
+  for (const b of blocks) {
+    if (!b.busy) continue;
+    const start = new Date(b.start);
+    const end = new Date(b.end);
+    // Walk each hour the block overlaps
+    const date = b.start.split('T')[0];
+    if (!dateSet.has(date)) {
+      // Block might span multiple dates — check each hour
+      for (const d of dates) {
+        for (const h of HOURS) {
+          const slotStart = new Date(`${d}T${String(h).padStart(2, '0')}:00:00.000Z`);
+          const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+          if (start < slotEnd && end > slotStart) set.add(`${d}:${h}`);
+        }
+      }
+    } else {
+      for (const h of HOURS) {
+        const slotStart = new Date(`${date}T${String(h).padStart(2, '0')}:00:00.000Z`);
+        const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+        if (start < slotEnd && end > slotStart) set.add(`${date}:${h}`);
+      }
+    }
+  }
+  return set;
 }
 
-// Rebuild blocks array from overrides applied on top of original blocks.
-// Blocks outside the visible date/hour range are preserved unchanged.
+// Rebuild blocks array from overrides applied on top of original busy set.
 function gridToBlocks(
   dates: string[],
   overrides: Map<string, boolean>,
   original: BusyBlock[],
+  busySet: Set<string>,
 ): BusyBlock[] {
   const dateSet = new Set(dates);
   const minHour = HOURS[0];
@@ -55,16 +93,16 @@ function gridToBlocks(
   const preserved = original.filter((b) => {
     if (!b.busy) return false;
     const date = b.start.split('T')[0];
-    if (!dateSet.has(date)) return true; // outside visible date range
+    if (!dateSet.has(date)) return true;
     const hour = new Date(b.start).getUTCHours();
-    return hour < minHour || hour >= maxHourEnd; // outside visible hour range
+    return hour < minHour || hour >= maxHourEnd;
   });
 
   const inView: BusyBlock[] = [];
   for (const date of dates) {
     for (const hour of HOURS) {
       const key = `${date}:${hour}`;
-      const busy = overrides.has(key) ? overrides.get(key)! : isBusy(original, date, hour);
+      const busy = overrides.has(key) ? overrides.get(key)! : busySet.has(key);
       if (busy) {
         const h = String(hour).padStart(2, '0');
         const h1 = String(hour + 1).padStart(2, '0');
@@ -76,13 +114,118 @@ function gridToBlocks(
   return [...preserved, ...inView];
 }
 
-export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: Props) {
+interface CellInfo {
+  colors: string[];
+  pids: string[];
+}
+
+// Build per-cell map of participant colors + IDs for group mode
+function buildParticipantCellMap(
+  participants: GridParticipant[],
+  dates: string[],
+): Map<string, CellInfo> {
+  const map = new Map<string, CellInfo>();
+  const dateSet = new Set(dates);
+  for (const p of participants) {
+    const color = participantColor(p.id);
+    for (const b of p.blocks) {
+      if (!b.busy) continue;
+      const start = new Date(b.start);
+      const end = new Date(b.end);
+      const date = b.start.split('T')[0];
+      const datesToCheck = dateSet.has(date) ? [date] : dates;
+      for (const d of datesToCheck) {
+        for (const h of HOURS) {
+          const slotStart = new Date(`${d}T${String(h).padStart(2, '0')}:00:00.000Z`);
+          const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+          if (start < slotEnd && end > slotStart) {
+            const key = `${d}:${h}`;
+            const existing = map.get(key);
+            if (existing) {
+              if (!existing.pids.includes(p.id)) {
+                existing.pids.push(p.id);
+                existing.colors.push(color);
+              }
+            } else {
+              map.set(key, { colors: [color], pids: [p.id] });
+            }
+          }
+        }
+      }
+    }
+  }
+  return map;
+}
+
+// Build CSS background for a cell with one or more participant colors
+function cellBackground(colors: string[]): string {
+  if (colors.length === 1) return colors[0];
+  // Equal-width vertical columns sharing horizontal space
+  const pct = 100 / colors.length;
+  const stops = colors.map((c, i) => `${c} ${i * pct}% ${(i + 1) * pct}%`).join(', ');
+  return `linear-gradient(to right, ${stops})`;
+}
+
+export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, participants, editableParticipantId, suggestMode, onSuggestSelect, proposals }: Props) {
   const dates = useMemo(() => getDates(fromDate, toDate), [fromDate, toDate]);
-  const [hovered, setHovered] = useState<{ row: number; col: number } | null>(null);
+
+  // Pre-compute busy lookup — O(blocks) once, O(1) per cell
+  const busySet = useMemo(() => buildBusySet(blocks, dates), [blocks, dates]);
+
+  // Group mode: editable participant's blocks as a separate busy set
+  const myParticipant = useMemo(
+    () => editableParticipantId ? participants?.find(p => p.id === editableParticipantId) : null,
+    [editableParticipantId, participants],
+  );
+  const myBusySet = useMemo(
+    () => myParticipant ? buildBusySet(myParticipant.blocks, dates) : null,
+    [myParticipant, dates],
+  );
+  const myBlocks = useMemo(() => myParticipant?.blocks ?? [], [myParticipant]);
+  const myColor = useMemo(
+    () => editableParticipantId ? participantColor(editableParticipantId) : '',
+    [editableParticipantId],
+  );
+
   const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [hiddenPids, setHiddenPids] = useState<Set<string>>(new Set());
+  const [suggestDrag, setSuggestDrag] = useState<DragState | null>(null);
 
-  // Stable refs so the global mouseup handler always sees latest state
+  // Build set of "date:hour" keys covered by proposals
+  const proposalCellSet = useMemo(() => {
+    const set = new Set<string>();
+    if (!proposals) return set;
+    for (const p of proposals) {
+      const start = new Date(p.start);
+      const end = new Date(p.end);
+      for (const d of dates) {
+        for (const h of HOURS) {
+          const slotStart = new Date(`${d}T${String(h).padStart(2, '0')}:00:00.000Z`);
+          const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+          if (start < slotEnd && end > slotStart) set.add(`${d}:${h}`);
+        }
+      }
+    }
+    return set;
+  }, [proposals, dates]);
+
+  // Group mode: per-cell color map (excludes editable participant if editing, and hidden participants)
+  const visibleParticipants = useMemo(
+    () => {
+      if (!participants) return null;
+      let list = participants;
+      if (editableParticipantId) list = list.filter(p => p.id !== editableParticipantId);
+      if (hiddenPids.size > 0) list = list.filter(p => !hiddenPids.has(p.id));
+      return list;
+    },
+    [editableParticipantId, participants, hiddenPids],
+  );
+  const cellColorMap = useMemo(
+    () => participants ? buildParticipantCellMap(visibleParticipants ?? participants, dates) : null,
+    [visibleParticipants, participants, dates],
+  );
+
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
   const dragRef = useRef(drag);
@@ -91,63 +234,23 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
   datesRef.current = dates;
   const blocksRef = useRef(blocks);
   blocksRef.current = blocks;
+  const busySetRef = useRef(busySet);
+  busySetRef.current = busySet;
   const onBlocksChangeRef = useRef(onBlocksChange);
   onBlocksChangeRef.current = onBlocksChange;
+  const myBusySetRef = useRef(myBusySet);
+  myBusySetRef.current = myBusySet;
+  const myBlocksRef = useRef(myBlocks);
+  myBlocksRef.current = myBlocks;
+  const suggestDragRef = useRef(suggestDrag);
+  suggestDragRef.current = suggestDrag;
+  const onSuggestSelectRef = useRef(onSuggestSelect);
+  onSuggestSelectRef.current = onSuggestSelect;
 
-  // Measure actual cell dimensions from the rendered table
   const tableRef = useRef<HTMLTableElement>(null);
-  const [cellMetrics, setCellMetrics] = useState<{ rowH: number; colW: number; headerH: number; timeW: number } | null>(null);
-
-  useEffect(() => {
-    function measure() {
-      const table = tableRef.current;
-      if (!table) return;
-      const thead = table.querySelector('thead');
-      const firstDataRow = table.querySelector('tbody tr');
-      const timeCell = table.querySelector('tbody tr td:first-child');
-      const firstDataCell = table.querySelector('tbody tr td:nth-child(2)');
-      if (!thead || !firstDataRow || !timeCell || !firstDataCell) return;
-      const headerH = thead.getBoundingClientRect().height;
-      const rowH = firstDataRow.getBoundingClientRect().height;
-      const timeW = timeCell.getBoundingClientRect().width;
-      const colW = firstDataCell.getBoundingClientRect().width;
-      setCellMetrics((prev) => {
-        if (prev && prev.headerH === headerH && prev.rowH === rowH && prev.timeW === timeW && prev.colW === colW) {
-          return prev; // no change, avoid re-render
-        }
-        return { headerH, rowH, timeW, colW };
-      });
-    }
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Find all qualifying busy rectangles
-  const gifRects = useMemo(() => {
-    const grid: boolean[][] = HOURS.map((hour) =>
-      dates.map((date) => {
-        const slotStart = new Date(`${date}T${String(hour).padStart(2, '0')}:00:00.000Z`);
-        const slotEnd = new Date(slotStart.getTime() + 3_600_000);
-        return blocks.some((b) => b.busy && new Date(b.start) < slotEnd && new Date(b.end) > slotStart);
-      }),
-    );
-    return findAllBusyRects(grid);
-  }, [blocks, dates]);
-
-  // Stable GIF assignments per rect index — grow as needed, never reshuffle
-  const catGifsRef = useRef<string[]>([]);
-  if (catGifsRef.current.length < gifRects.length) {
-    while (catGifsRef.current.length < gifRects.length) {
-      catGifsRef.current.push(randomCatGif());
-    }
-  }
-
-  // Clear local overrides when the parent replaces the block list
   useEffect(() => {
     setOverrides(new Map());
-  }, [blocks]);
+  }, [blocks, myBlocks]);
 
   const commitDrag = useCallback((d: DragState) => {
     const minRow = Math.min(d.startRow, d.currentRow);
@@ -162,10 +265,12 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
       }
     }
     setOverrides(next);
-    onBlocksChangeRef.current?.(gridToBlocks(datesRef.current, next, blocksRef.current));
+    // In group edit mode, rebuild from editable participant's blocks/busySet
+    const srcBlocks = myBusySetRef.current ? myBlocksRef.current : blocksRef.current;
+    const srcBusySet = myBusySetRef.current ?? busySetRef.current;
+    onBlocksChangeRef.current?.(gridToBlocks(datesRef.current, next, srcBlocks, srcBusySet));
   }, []);
 
-  // Global mouseup so drag commits even if pointer leaves the table
   useEffect(() => {
     function onMouseUp() {
       const d = dragRef.current;
@@ -173,24 +278,26 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
         commitDrag(d);
         setDrag(null);
       }
+      const sd = suggestDragRef.current;
+      if (sd) {
+        const minRow = Math.min(sd.startRow, sd.currentRow);
+        const maxRow = Math.max(sd.startRow, sd.currentRow);
+        const minCol = Math.min(sd.startCol, sd.currentCol);
+        const maxCol = Math.max(sd.startCol, sd.currentCol);
+        onSuggestSelectRef.current?.({
+          startDate: datesRef.current[minCol],
+          startHour: HOURS[minRow],
+          endDate: datesRef.current[maxCol],
+          endHour: HOURS[maxRow] + 1,
+        });
+        setSuggestDrag(null);
+      }
     }
     window.addEventListener('mouseup', onMouseUp);
     return () => window.removeEventListener('mouseup', onMouseUp);
   }, [commitDrag]);
 
-  function isEffectivelyBusy(row: number, col: number): boolean {
-    if (drag) {
-      const minRow = Math.min(drag.startRow, drag.currentRow);
-      const maxRow = Math.max(drag.startRow, drag.currentRow);
-      const minCol = Math.min(drag.startCol, drag.currentCol);
-      const maxCol = Math.max(drag.startCol, drag.currentCol);
-      if (row >= minRow && row <= maxRow && col >= minCol && col <= maxCol) return drag.mode;
-    }
-    const key = `${dates[col]}:${HOURS[row]}`;
-    if (overrides.has(key)) return overrides.get(key)!;
-    return isBusy(blocks, dates[col], HOURS[row]);
-  }
-
+  // During drag, check if cell is in the drag rectangle
   function inDragRect(row: number, col: number): boolean {
     if (!drag) return false;
     return (
@@ -201,112 +308,303 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange }: P
     );
   }
 
-  function cellClass(row: number, col: number): string {
-    const busy = isEffectivelyBusy(row, col);
+  function inSuggestDragRect(row: number, col: number): boolean {
+    if (!suggestDrag) return false;
+    return (
+      row >= Math.min(suggestDrag.startRow, suggestDrag.currentRow) &&
+      row <= Math.max(suggestDrag.startRow, suggestDrag.currentRow) &&
+      col >= Math.min(suggestDrag.startCol, suggestDrag.currentCol) &&
+      col <= Math.max(suggestDrag.startCol, suggestDrag.currentCol)
+    );
+  }
 
+  // Only used during drag — determines cell class when dragging
+  function dragCellClass(row: number, col: number): string {
     if (inDragRect(row, col)) {
-      return `border border-stone-300 h-4 ${drag!.mode ? 'bg-stone-300' : 'bg-sky-100'}`;
+      return drag!.mode ? 'grid-cell grid-cell-drag-busy' : 'grid-cell grid-cell-drag-free';
     }
+    const key = `${dates[col]}:${HOURS[row]}`;
+    const busy = overrides.has(key) ? overrides.get(key)! : busySet.has(key);
+    return busy ? 'grid-cell grid-cell-busy' : 'grid-cell';
+  }
 
-    const isHoveredRow = !drag && hovered?.row === row;
-    const isHoveredCol = !drag && hovered?.col === col;
-
-    if (isHoveredRow && isHoveredCol) return 'border border-stone-400 h-4 bg-stone-200';
-    if (isHoveredRow || isHoveredCol) {
-      return `border border-stone-200 h-4 ${busy ? 'bg-stone-200' : 'bg-sky-50'}`;
-    }
-    return `border border-stone-100 h-4 ${busy ? 'bg-stone-200/70' : 'bg-white'}`;
+  // Static cell class — no hover logic, CSS handles hover
+  function staticCellClass(col: number, row: number): string {
+    const key = `${dates[col]}:${HOURS[row]}`;
+    const busy = overrides.has(key) ? overrides.get(key)! : busySet.has(key);
+    return busy ? 'grid-cell grid-cell-busy' : 'grid-cell';
   }
 
   function handleCellMouseDown(row: number, col: number) {
-    const busy = isEffectivelyBusy(row, col);
+    const key = `${dates[col]}:${HOURS[row]}`;
+    // In group edit mode, check my busy set; otherwise use the flat busySet
+    const srcBusy = myBusySet ?? busySet;
+    const busy = overrides.has(key) ? overrides.get(key)! : srcBusy.has(key);
     setDrag({ startRow: row, startCol: col, currentRow: row, currentCol: col, mode: !busy });
   }
 
-  const gifOverlays: React.ReactNode = cellMetrics && gifRects.length > 0 ? (
-    <>
-      {gifRects.map((rect, i) => {
-        const top = cellMetrics.headerH + rect.startRow * cellMetrics.rowH;
-        const left = cellMetrics.timeW + rect.startCol * cellMetrics.colW;
-        const width = rect.cols * cellMetrics.colW;
-        const height = rect.rows * cellMetrics.rowH;
-        return (
-          <div
-            key={i}
-            className="absolute pointer-events-none overflow-hidden rounded"
-            style={{ top, left, width, height, opacity: 0.75, willChange: 'transform' }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/gifs/${catGifsRef.current[i]}`}
-              alt="cat"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          </div>
-        );
-      })}
-    </>
-  ) : null;
+  // Lightweight vertical column line — DOM-direct, no React state
+  const colLineRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const table = tableRef.current;
+    const line = colLineRef.current;
+    const wrapper = wrapperRef.current;
+    if (!table || !line || !wrapper) return;
+
+    let activeHeader: HTMLElement | null = null;
+    const headers = table.querySelectorAll<HTMLElement>('.avail-grid__col-header');
+
+    function onMove(e: MouseEvent) {
+      if (dragRef.current) { line!.style.opacity = '0'; clearHeader(); return; }
+      const td = (e.target as HTMLElement).closest('.grid-cell') as HTMLTableCellElement | null;
+      if (!td) { line!.style.opacity = '0'; clearHeader(); return; }
+
+      // Column line
+      const wrapperRect = wrapper!.getBoundingClientRect();
+      const tdRect = td.getBoundingClientRect();
+      const thead = table!.querySelector('thead');
+      const headerH = thead ? thead.getBoundingClientRect().height : 0;
+      line!.style.opacity = '1';
+      line!.style.left = `${tdRect.left - wrapperRect.left + tdRect.width / 2}px`;
+      line!.style.top = `${headerH}px`;
+      line!.style.height = `${wrapper!.scrollHeight - headerH}px`;
+
+      // Highlight column header
+      const colIndex = td.cellIndex - 1; // subtract 1 for the time label column
+      if (colIndex >= 0 && colIndex < headers.length) {
+        if (activeHeader && activeHeader !== headers[colIndex]) {
+          activeHeader.classList.remove('avail-grid__col-header--active');
+        }
+        activeHeader = headers[colIndex];
+        activeHeader.classList.add('avail-grid__col-header--active');
+      }
+    }
+
+    function clearHeader() {
+      if (activeHeader) {
+        activeHeader.classList.remove('avail-grid__col-header--active');
+        activeHeader = null;
+      }
+    }
+
+    function onLeave() {
+      line!.style.opacity = '0';
+      clearHeader();
+    }
+
+    table.addEventListener('mousemove', onMove);
+    table.addEventListener('mouseleave', onLeave);
+    return () => {
+      table.removeEventListener('mousemove', onMove);
+      table.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
 
   return (
-    <div className="overflow-x-auto">
-      <div className="relative inline-block min-w-full">
+    <div className="overflow-x-auto avail-grid-wrapper">
+      <div ref={wrapperRef} className="relative inline-block min-w-full">
+        {/* Vertical column indicator line — positioned via mousemove, no React re-render */}
+        <div
+          ref={colLineRef}
+          className="avail-grid__col-line"
+        />
         <table
           ref={tableRef}
-          className={`text-xs border-collapse min-w-full ${drag ? 'select-none' : ''}`}
-          onMouseLeave={() => { if (!drag) setHovered(null); }}
+          className={`avail-grid text-xs border-separate min-w-full ${drag || suggestDrag ? 'select-none avail-grid--dragging' : ''}`}
+          style={{ borderSpacing: 2 }}
         >
           <thead>
             <tr>
-              <th className="w-12 text-right pr-2 text-stone-400 font-normal" />
-              {dates.map((d, ci) => (
-                <th
-                  key={d}
-                  className={`px-1 py-1 font-medium min-w-[36px] text-center ${
-                    hovered?.col === ci && !drag ? 'text-stone-600' : 'text-stone-400'
-                  }`}
-                >
-                  {d.slice(5)}
-                </th>
-              ))}
+              <th className="avail-grid__time-header w-12 text-right pr-2 font-normal" />
+              {dates.map((d) => {
+                const day = new Date(d + 'T00:00:00.000Z');
+                const weekday = day.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+                const isWeekend = day.getUTCDay() === 0 || day.getUTCDay() === 6;
+                return (
+                  <th key={d} className="avail-grid__col-header px-1 py-1 font-medium min-w-[36px] text-center">
+                    <span style={{ color: isWeekend ? 'var(--accent)' : undefined }}>{weekday}</span>
+                    <br />
+                    {d.slice(5)}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {HOURS.map((hour, ri) => (
-              <tr key={hour}>
-                <td
-                  className={`text-right pr-2 py-0 leading-none ${
-                    hovered?.row === ri && !drag ? 'text-stone-600 font-semibold' : 'text-stone-400'
-                  }`}
-                >
+              <tr key={hour} className="avail-grid__row">
+                <td className="avail-grid__time-label text-right pr-2 py-0 leading-none font-mono">
                   {String(hour).padStart(2, '0')}:00
                 </td>
-                {dates.map((_, ci) => (
-                  <td
-                    key={ci}
-                    className={cellClass(ri, ci)}
-                    onMouseDown={() => handleCellMouseDown(ri, ci)}
-                    onMouseEnter={() => {
-                      setHovered({ row: ri, col: ci });
-                      setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null);
-                    }}
-                  />
-                ))}
+                {dates.map((_, ci) => {
+                  const key = `${dates[ci]}:${HOURS[ri]}`;
+                  const hasSuggestHighlight = suggestMode && inSuggestDragRect(ri, ci);
+                  const hasProposalDot = proposalCellSet.has(key);
+                  const needsRelative = hasProposalDot;
+
+                  // Suggest mode mouse handlers
+                  const suggestMouseDown = suggestMode ? () => {
+                    setSuggestDrag({ startRow: ri, startCol: ci, currentRow: ri, currentCol: ci, mode: true });
+                  } : undefined;
+                  const suggestMouseEnter = suggestDrag ? () => {
+                    setSuggestDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null);
+                  } : undefined;
+
+                  // Group mode with editing: interactive cells with combined colors
+                  if (cellColorMap && myBusySet) {
+                    const othersInfo = cellColorMap.get(key);
+                    const myBusy = overrides.has(key) ? overrides.get(key)! : myBusySet.has(key);
+                    const inRect = drag ? inDragRect(ri, ci) : false;
+                    const showMyBusy = inRect ? drag!.mode : myBusy;
+
+                    const colors: string[] = othersInfo ? [...othersInfo.colors] : [];
+                    const pids: string[] = othersInfo ? [...othersInfo.pids] : [];
+                    if (showMyBusy && !hiddenPids.has(editableParticipantId!)) {
+                      colors.push(myColor);
+                      pids.push(editableParticipantId!);
+                    }
+
+                    const hasColors = colors.length > 0;
+                    const cls = [
+                      hasColors ? 'grid-cell grid-cell-group' : 'grid-cell',
+                      hasSuggestHighlight ? 'grid-cell-suggest' : '',
+                    ].filter(Boolean).join(' ');
+                    return (
+                      <td
+                        key={ci}
+                        className={cls}
+                        style={{
+                          ...(hasColors ? { background: cellBackground(colors), borderColor: 'transparent' } : undefined),
+                          ...(needsRelative ? { position: 'relative' as const } : undefined),
+                          ...(suggestMode ? { cursor: 'pointer' } : undefined),
+                        }}
+                        data-pids={hasColors ? pids.join(' ') : undefined}
+                        data-proposal={hasProposalDot ? '' : undefined}
+                        onMouseDown={suggestMode ? suggestMouseDown : () => handleCellMouseDown(ri, ci)}
+                        onMouseEnter={suggestDrag ? suggestMouseEnter : (drag ? () => setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null) : undefined)}
+                      >
+                        {hasProposalDot && <div className="grid-cell-proposal-dot" />}
+                      </td>
+                    );
+                  }
+
+                  // Group mode: read-only colored cells
+                  if (cellColorMap && !drag) {
+                    const info = cellColorMap.get(key);
+                    const cls = [
+                      info ? 'grid-cell grid-cell-group' : 'grid-cell',
+                      hasSuggestHighlight ? 'grid-cell-suggest' : '',
+                    ].filter(Boolean).join(' ');
+                    return (
+                      <td
+                        key={ci}
+                        className={cls}
+                        style={{
+                          ...(info ? { background: cellBackground(info.colors), borderColor: 'transparent' } : undefined),
+                          ...(needsRelative ? { position: 'relative' as const } : undefined),
+                          ...(suggestMode ? { cursor: 'pointer' } : undefined),
+                        }}
+                        data-pids={info ? info.pids.join(' ') : undefined}
+                        data-proposal={hasProposalDot ? '' : undefined}
+                        onMouseDown={suggestMouseDown}
+                        onMouseEnter={suggestMouseEnter}
+                      >
+                        {hasProposalDot && <div className="grid-cell-proposal-dot" />}
+                      </td>
+                    );
+                  }
+
+                  // Personal mode: drag to edit
+                  const cls = [
+                    drag ? dragCellClass(ri, ci) : staticCellClass(ci, ri),
+                    hasSuggestHighlight ? 'grid-cell-suggest' : '',
+                  ].filter(Boolean).join(' ');
+                  return (
+                    <td
+                      key={ci}
+                      className={cls}
+                      style={{
+                        ...(needsRelative ? { position: 'relative' as const } : undefined),
+                        ...(suggestMode ? { cursor: 'pointer' } : undefined),
+                      }}
+                      data-proposal={hasProposalDot ? '' : undefined}
+                      onMouseDown={suggestMode ? suggestMouseDown : () => handleCellMouseDown(ri, ci)}
+                      onMouseEnter={suggestDrag ? suggestMouseEnter : (drag ? () => setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null) : undefined)}
+                    >
+                      {hasProposalDot && <div className="grid-cell-proposal-dot" />}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
         </table>
-        {gifOverlays}
       </div>
-      <div className="flex gap-4 mt-3 text-xs text-stone-400">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-stone-200 inline-block" /> Busy
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-white border border-stone-100 inline-block" /> Free
-        </span>
-        {onBlocksChange && (
-          <span className="ml-auto italic">Drag to toggle busy / free</span>
+      <div className="flex flex-wrap gap-3 mt-3 text-xs" style={{ color: 'var(--subtle)' }}>
+        {participants ? (
+          <>
+            {participants.map((p) => {
+              const hidden = hiddenPids.has(p.id);
+              return (
+                <span
+                  key={p.id}
+                  className="flex items-center gap-1.5 cursor-pointer select-none"
+                  style={{ opacity: hidden ? 0.35 : 1, textDecoration: hidden ? 'line-through' : undefined }}
+                  onClick={() => {
+                    setHiddenPids(prev => {
+                      const next = new Set(prev);
+                      if (next.has(p.id)) next.delete(p.id);
+                      else next.add(p.id);
+                      return next;
+                    });
+                  }}
+                  onMouseEnter={() => {
+                    if (hidden) return;
+                    const table = tableRef.current;
+                    if (!table) return;
+                    table.querySelectorAll<HTMLElement>('.grid-cell-group').forEach((cell) => {
+                      const pids = cell.dataset.pids ?? '';
+                      if (!pids.includes(p.id)) {
+                        cell.classList.add('grid-cell-group--dimmed');
+                      } else {
+                        cell.classList.add('grid-cell-group--highlighted');
+                      }
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    const table = tableRef.current;
+                    if (!table) return;
+                    table.querySelectorAll<HTMLElement>('.grid-cell-group').forEach((cell) => {
+                      cell.classList.remove('grid-cell-group--dimmed', 'grid-cell-group--highlighted');
+                    });
+                  }}
+                >
+                  <span className="w-3 h-3 rounded-sm inline-block" style={{ background: participantColor(p.id) }} />
+                  {participantName(p.id)}
+                </span>
+              );
+            })}
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'var(--slot-free)', border: '1px solid var(--border)' }} /> Free
+            </span>
+            {editableParticipantId && onBlocksChange && (
+              <span className="ml-auto italic">Drag to edit your availability</span>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'var(--slot-busy)' }} /> Busy
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm inline-block" style={{ background: 'var(--slot-free)', border: '1px solid var(--border)' }} /> Free
+            </span>
+            {onBlocksChange && (
+              <span className="ml-auto italic">Drag to toggle busy / free</span>
+            )}
+          </>
         )}
       </div>
     </div>
