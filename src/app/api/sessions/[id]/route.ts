@@ -1,21 +1,30 @@
 import { NextResponse } from 'next/server';
-import { kv, verifyOrganizerToken } from '@/lib/session';
+import { kv, getSession, verifyOrganizerToken, resolveGroupParticipants } from '@/lib/session';
 
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await getSession(id);
+  if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
 
-  const session = await verifyOrganizerToken(id, token);
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const participants = await resolveGroupParticipants(session);
+
+  // Build participantId → personalSessionId mapping so clients can identify themselves
+  const personalSessionMap: Record<string, string> = {};
+  for (const [pid, value] of Object.entries(session.participants)) {
+    if (value && typeof value === 'object' && !Array.isArray(value) && 'personalSessionId' in value) {
+      personalSessionMap[pid] = (value as { personalSessionId: string }).personalSessionId;
+    }
+  }
 
   return NextResponse.json({
-    participants: Object.entries(session.participants).map(([pid, blocks]) => ({ id: pid, blocks })),
+    participants,
     quorum: session.quorum,
     lookAheadDays: session.lookAheadDays,
+    personalSessionMap,
+    proposals: session.proposals ?? [],
   });
 }
 
