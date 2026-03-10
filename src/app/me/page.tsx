@@ -81,7 +81,7 @@ export default function AvailabilityPage() {
   const [newEndHour, setNewEndHour] = useState(19);
 
   const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const HOURS = Array.from({ length: 17 }, (_, i) => i + 6);
+  const ALL_HOURS = Array.from({ length: 24 }, (_, i) => i);
 
   function addRecurringEvent() {
     if (!newTitle.trim() || newStartHour >= newEndHour) return;
@@ -98,6 +98,15 @@ export default function AvailabilityPage() {
 
   function removeRecurringEvent(id: string) {
     dispatch({ type: 'SET_RECURRING_EVENTS', events: state.recurringEvents.filter(e => e.id !== id) });
+  }
+
+  function toggleShareTitle(id: string) {
+    dispatch({
+      type: 'SET_RECURRING_EVENTS',
+      events: state.recurringEvents.map(e =>
+        e.id === id ? { ...e, shareTitle: !e.shareTitle } : e
+      ),
+    });
   }
 
   function handleRename(sessionId: string, name: string) {
@@ -250,6 +259,14 @@ export default function AvailabilityPage() {
                     </span>
                   </span>
                   <button
+                    onClick={() => toggleShareTitle(ev.id)}
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: ev.shareTitle ? 'var(--accent)' : 'var(--subtle)' }}
+                    title={ev.shareTitle ? 'Title visible to groups' : 'Title hidden from groups'}
+                  >
+                    {ev.shareTitle ? 'Shared' : 'Private'}
+                  </button>
+                  <button
                     onClick={() => removeRecurringEvent(ev.id)}
                     className="btn btn-ghost btn-sm"
                     style={{ color: 'var(--subtle)' }}
@@ -287,7 +304,7 @@ export default function AvailabilityPage() {
                 <div>
                   <label className="label">From</label>
                   <select value={newStartHour} onChange={e => setNewStartHour(Number(e.target.value))} className="input" style={{ width: 'auto' }}>
-                    {HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
+                    {ALL_HOURS.map(h => <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>)}
                   </select>
                 </div>
                 <div>
@@ -298,10 +315,9 @@ export default function AvailabilityPage() {
                     className="input"
                     style={{ width: 'auto' }}
                   >
-                    {HOURS.filter(h => h > newStartHour).map(h => (
+                    {ALL_HOURS.filter(h => h > newStartHour).map(h => (
                       <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
                     ))}
-                    <option value={23}>23:00</option>
                   </select>
                 </div>
                 <button

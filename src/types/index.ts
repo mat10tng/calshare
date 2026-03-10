@@ -63,8 +63,9 @@ export interface RecurringEvent {
   id: string;
   title: string;
   dayOfWeek: number;  // 0=Sun, 1=Mon, ..., 6=Sat
-  startHour: number;  // 6–22
-  endHour: number;    // 7–23
+  startHour: number;  // 0–23
+  endHour: number;    // 1–23
+  shareTitle?: boolean; // if true, title is visible to group members
 }
 
 export type IngestionPath = 'oauth-google' | 'oauth-microsoft' | 'ics-upload' | 'ics-guide';

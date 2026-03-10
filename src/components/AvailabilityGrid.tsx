@@ -435,9 +435,27 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
           const p = participantsRef.current?.find(pp => pp.id === pid);
           return p?.displayName || participantName(pid);
         };
-        if (info) info.pids.forEach(pid => busyNames.push(nameOf(pid)));
+        // Look up titles from participant blocks for this time slot
+        const slotStart = new Date(`${date}T${h0}:00:00.000Z`);
+        const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+        function findTitle(pid: string): string | undefined {
+          const p = participantsRef.current?.find(pp => pp.id === pid);
+          if (!p) return undefined;
+          for (const b of p.blocks) {
+            if (!b.busy || !b.title) continue;
+            const bs = new Date(b.start);
+            const be = new Date(b.end);
+            if (bs < slotEnd && be > slotStart) return b.title;
+          }
+          return undefined;
+        }
+        if (info) info.pids.forEach(pid => {
+          const title = findTitle(pid);
+          busyNames.push(title ? `${nameOf(pid)} (${title})` : nameOf(pid));
+        });
         if (myBusy && editPid && !busyNames.some((_, i) => info?.pids[i] === editPid)) {
-          busyNames.push(nameOf(editPid));
+          const title = findTitle(editPid);
+          busyNames.push(title ? `${nameOf(editPid)} (${title})` : nameOf(editPid));
         }
         const totalParticipants = participantsRef.current?.length ?? 0;
         const freeCount = totalParticipants - busyNames.length;

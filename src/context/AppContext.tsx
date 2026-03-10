@@ -19,7 +19,7 @@ function expandRecurringEvents(events: RecurringEvent[], lookAheadDays: number):
           end: `${dateStr}T${eh}:00:00.000Z`,
           busy: true,
           allDay: false,
-          title: ev.title,
+          ...(ev.shareTitle ? { title: ev.title } : {}),
           sourceId: `recurring:${ev.id}`,
         });
       }
