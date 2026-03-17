@@ -1,0 +1,15 @@
+{
+  "planPath": "docs/plans/2026-03-17-rich-events-plan.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Add CalendarEvent and EventPrivacy types", "status": "pending"},
+    {"id": 1, "subject": "Task 1: Create events.ts with privacy filter and migration", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 2: Update AppContext to add events state and CRUD actions", "status": "pending", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: Create EventModal component", "status": "pending", "blockedBy": [0]},
+    {"id": 4, "subject": "Task 4: Integrate EventModal into /me page", "status": "pending", "blockedBy": [2, 3]},
+    {"id": 5, "subject": "Task 5: Display event titles on the availability grid", "status": "pending", "blockedBy": [4]},
+    {"id": 6, "subject": "Task 6: Update anonymise.ts with toCalendarEvents", "status": "pending", "blockedBy": [0]},
+    {"id": 7, "subject": "Task 7: Add migration logic for existing localStorage data", "status": "pending", "blockedBy": [2]},
+    {"id": 8, "subject": "Task 8: End-to-end verification and cleanup", "status": "pending", "blockedBy": [4, 5, 6, 7]}
+  ],
+  "lastUpdated": "2026-03-17T00:00:00.000Z"
+}
