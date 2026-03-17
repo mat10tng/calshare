@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { BusyBlock, CalendarSource, UserPreferences, GroupEntry, RecurringEvent, CalendarEvent } from '@/types';
-import { applyPrivacyFilter } from '@/lib/events';
+import { applyPrivacyFilter, migrateBlocksToEvents } from '@/lib/events';
 
 function expandRecurringEvents(events: RecurringEvent[], lookAheadDays: number): BusyBlock[] {
   const blocks: BusyBlock[] = [];
@@ -268,6 +268,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const savedEvents = localStorage.getItem('calshare:events');
       if (savedEvents) {
         dispatch({ type: 'SET_EVENTS', events: JSON.parse(savedEvents) });
+      }
+      // Migrate legacy blocks to events if events are empty
+      const hasEvents = savedEvents && JSON.parse(savedEvents).length > 0;
+      if (!hasEvents) {
+        const legacyBlocks = savedBlocks ? JSON.parse(savedBlocks) as BusyBlock[] : [];
+        if (legacyBlocks.length > 0) {
+          const migratedEvents = migrateBlocksToEvents(legacyBlocks);
+          dispatch({ type: 'SET_EVENTS', events: migratedEvents });
+        }
       }
       const savedDisplayName = localStorage.getItem('calshare:displayName');
       if (savedDisplayName) dispatch({ type: 'SET_DISPLAY_NAME', name: savedDisplayName });
