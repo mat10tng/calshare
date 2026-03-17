@@ -1,6 +1,7 @@
 'use client';
 import { createContext, useContext, useReducer, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { BusyBlock, CalendarSource, UserPreferences, GroupEntry, RecurringEvent } from '@/types';
+import type { BusyBlock, CalendarSource, UserPreferences, GroupEntry, RecurringEvent, CalendarEvent } from '@/types';
+import { applyPrivacyFilter } from '@/lib/events';
 
 function expandRecurringEvents(events: RecurringEvent[], lookAheadDays: number): BusyBlock[] {
   const blocks: BusyBlock[] = [];
@@ -54,6 +55,7 @@ interface AppState {
   groups: GroupEntry[];
   organizerTokens: Record<string, string>;
   recurringEvents: RecurringEvent[];
+  events: CalendarEvent[];
 }
 
 type Action =
@@ -71,7 +73,12 @@ type Action =
   | { type: 'SET_ORGANIZER_TOKEN'; sessionId: string; token: string }
   | { type: 'SET_DISPLAY_NAME'; name: string | null }
   | { type: 'SET_USER_COLOR'; color: string | null }
-  | { type: 'SET_RECURRING_EVENTS'; events: RecurringEvent[] };
+  | { type: 'SET_RECURRING_EVENTS'; events: RecurringEvent[] }
+  | { type: 'SET_EVENTS'; events: CalendarEvent[] }
+  | { type: 'ADD_EVENT'; event: CalendarEvent }
+  | { type: 'UPDATE_EVENT'; id: string; changes: Partial<CalendarEvent> }
+  | { type: 'REMOVE_EVENT'; id: string }
+  | { type: 'IMPORT_EVENTS'; source: CalendarSource; events: CalendarEvent[] };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -122,6 +129,25 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, userColor: action.color };
     case 'SET_RECURRING_EVENTS':
       return { ...state, recurringEvents: action.events };
+    case 'SET_EVENTS':
+      return { ...state, events: action.events };
+    case 'ADD_EVENT':
+      return { ...state, events: [...state.events, action.event] };
+    case 'UPDATE_EVENT':
+      return {
+        ...state,
+        events: state.events.map(e =>
+          e.id === action.id ? { ...e, ...action.changes } : e
+        ),
+      };
+    case 'REMOVE_EVENT':
+      return { ...state, events: state.events.filter(e => e.id !== action.id) };
+    case 'IMPORT_EVENTS':
+      return {
+        ...state,
+        sources: [...state.sources, action.source],
+        events: [...state.events, ...action.events],
+      };
     default:
       return state;
   }
@@ -138,6 +164,7 @@ const INITIAL_STATE: AppState = {
   groups: [],
   organizerTokens: {},
   recurringEvents: [],
+  events: [],
 };
 
 const AppContext = createContext<{
@@ -238,6 +265,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (savedRecurring) {
         dispatch({ type: 'SET_RECURRING_EVENTS', events: JSON.parse(savedRecurring) });
       }
+      const savedEvents = localStorage.getItem('calshare:events');
+      if (savedEvents) {
+        dispatch({ type: 'SET_EVENTS', events: JSON.parse(savedEvents) });
+      }
       const savedDisplayName = localStorage.getItem('calshare:displayName');
       if (savedDisplayName) dispatch({ type: 'SET_DISPLAY_NAME', name: savedDisplayName });
       const savedUserColor = localStorage.getItem('calshare:userColor');
@@ -273,11 +304,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncTimeoutRef.current = setTimeout(() => {
       const s = stateRef.current;
       const recurringBlocks = expandRecurringEvents(s.recurringEvents, s.preferences.lookAheadDays);
-      syncBlocksToBackend([...s.blocks, ...recurringBlocks], s, dispatch);
+      const eventBlocks = applyPrivacyFilter(s.events);
+      syncBlocksToBackend([...s.blocks, ...recurringBlocks, ...eventBlocks], s, dispatch);
     }, 500);
     return () => clearTimeout(syncTimeoutRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.blocks, state.recurringEvents, hydrated]);
+  }, [state.blocks, state.recurringEvents, state.events, hydrated]);
 
   useEffect(() => {
     try {
@@ -314,6 +346,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('calshare:recurringEvents', JSON.stringify(state.recurringEvents));
     } catch { /* ignore */ }
   }, [state.recurringEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('calshare:events', JSON.stringify(state.events));
+    } catch { /* ignore */ }
+  }, [state.events]);
 
   useEffect(() => {
     try {
