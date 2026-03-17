@@ -1,4 +1,4 @@
-import { anonymiseEvents } from '../anonymise';
+import { anonymiseEvents, toCalendarEvents } from '../anonymise';
 
 describe('anonymiseEvents', () => {
   it('strips all fields except start, end, busy, allDay', () => {
@@ -52,5 +52,49 @@ describe('anonymiseEvents', () => {
   it('throws for invalid date strings', () => {
     const raw = [{ start: 'not-a-date', end: '2026-03-10T10:00:00Z', status: 'busy', allDay: false }];
     expect(() => anonymiseEvents(raw)).toThrow('Invalid date string');
+  });
+});
+
+describe('toCalendarEvents', () => {
+  it('converts raw events to CalendarEvents with busy-only privacy', () => {
+    const raw = [{
+      title: 'Meeting',
+      start: '2026-03-17T09:00:00Z',
+      end: '2026-03-17T10:00:00Z',
+      status: 'busy' as const,
+      allDay: false,
+    }];
+    const result = toCalendarEvents(raw, 'google');
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Meeting');
+    expect(result[0].privacy).toBe('busy-only');
+    expect(result[0].source).toBe('google');
+    expect(result[0].id).toBeTruthy();
+  });
+
+  it('returns empty array for null input', () => {
+    expect(toCalendarEvents(null as any, 'ics')).toEqual([]);
+  });
+
+  it('preserves sourceId when provided', () => {
+    const raw = [{
+      start: '2026-03-17T09:00:00Z',
+      end: '2026-03-17T10:00:00Z',
+      status: 'busy' as const,
+      allDay: false,
+    }];
+    const result = toCalendarEvents(raw, 'ics', 'source-123');
+    expect(result[0].sourceId).toBe('source-123');
+  });
+
+  it('treats free events as not busy', () => {
+    const raw = [{
+      start: '2026-03-17T09:00:00Z',
+      end: '2026-03-17T10:00:00Z',
+      status: 'free' as const,
+      allDay: false,
+    }];
+    const result = toCalendarEvents(raw, 'google');
+    expect(result[0].busy).toBe(false);
   });
 });
