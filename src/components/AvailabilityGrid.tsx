@@ -76,6 +76,29 @@ function buildBusySet(blocks: BusyBlock[], dates: string[]): Set<string> {
   return set;
 }
 
+function buildTitleMap(blocks: BusyBlock[], dates: string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const dateSet = new Set(dates);
+  for (const b of blocks) {
+    if (!b.title) continue;
+    const date = b.start.split('T')[0];
+    const datesToCheck = dateSet.has(date) ? [date] : dates;
+    for (const d of datesToCheck) {
+      for (const h of HOURS) {
+        const slotStart = new Date(`${d}T${String(h).padStart(2, '0')}:00:00.000Z`);
+        const slotEnd = new Date(slotStart.getTime() + 3_600_000);
+        const start = new Date(b.start);
+        const end = new Date(b.end);
+        if (start < slotEnd && end > slotStart) {
+          const key = `${d}:${h}`;
+          if (!map.has(key)) map.set(key, b.title);
+        }
+      }
+    }
+  }
+  return map;
+}
+
 // Rebuild blocks array from overrides applied on top of original busy set.
 function gridToBlocks(
   dates: string[],
@@ -168,6 +191,8 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
 
   // Pre-compute busy lookup — O(blocks) once, O(1) per cell
   const busySet = useMemo(() => buildBusySet(blocks, dates), [blocks, dates]);
+
+  const titleMap = useMemo(() => buildTitleMap(blocks, dates), [blocks, dates]);
 
   // Group mode: editable participant's blocks as a separate busy set
   const myParticipant = useMemo(
@@ -689,13 +714,16 @@ export function AvailabilityGrid({ blocks, fromDate, toDate, onBlocksChange, par
                       className={cls}
                       style={{
                         ...(busyColor && isBusy ? { background: busyColor, borderColor: 'transparent' } : undefined),
-                        ...(needsRelative ? { position: 'relative' as const } : undefined),
+                        ...(needsRelative || titleMap.has(key) ? { position: 'relative' as const } : undefined),
                         ...(suggestMode ? { cursor: 'pointer' } : undefined),
                       }}
                       data-proposals={proposalIds ? proposalIds.join(' ') : undefined}
                       onMouseDown={suggestMode ? suggestMouseDown : () => handleCellMouseDown(ri, ci)}
                       onMouseEnter={suggestDrag ? suggestMouseEnter : (drag ? () => setDrag((prev) => prev ? { ...prev, currentRow: ri, currentCol: ci } : null) : undefined)}
                     >
+                      {titleMap.has(key) && (
+                        <span className="grid-cell-title">{titleMap.get(key)}</span>
+                      )}
                       {hasProposalDot && proposalColors!.map((c, i) => (
                           <div key={i} className="grid-cell-proposal-dot" style={{ background: c, right: 2 + i * 5 }} />
                         ))}
