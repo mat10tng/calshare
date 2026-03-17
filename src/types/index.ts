@@ -7,6 +7,22 @@ export interface BusyBlock {
   sourceId?: string; // links to CalendarSource.id
 }
 
+export type EventPrivacy = 'full' | 'title-only' | 'busy-only';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start: string;   // ISO 8601 UTC (exact time)
+  end: string;     // ISO 8601 UTC (exact time)
+  busy: boolean;
+  allDay: boolean;
+  privacy: EventPrivacy;
+  source: 'manual' | 'google' | 'outlook' | 'ics' | 'recurring';
+  sourceId?: string;
+  color?: string;
+}
+
 export type CalendarCategory =
   | 'work'
   | 'personal'
