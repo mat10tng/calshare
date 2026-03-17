@@ -6,7 +6,8 @@ import { AvailabilityGrid } from '@/components/AvailabilityGrid';
 import { Nav } from '@/components/Nav';
 import { GroupsList } from '@/components/GroupsList';
 import { participantColor } from '@/lib/participant-names';
-import type { BusyBlock, RecurringEvent } from '@/types';
+import type { BusyBlock, RecurringEvent, CalendarEvent } from '@/types';
+import { EventModal } from '@/components/EventModal';
 
 export default function AvailabilityPage() {
   const { state, dispatch, hydrated } = useApp();
@@ -32,6 +33,10 @@ export default function AvailabilityPage() {
   const [createQuorum, setCreateQuorum] = useState(2);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [createFromDate, setCreateFromDate] = useState<string | null>(null);
+  const [createFromHour, setCreateFromHour] = useState<number | undefined>(undefined);
+  const showEventModal = editingEvent !== null || createFromDate !== null;
 
   // Personal session creation + block sync handled by AppContext
 
@@ -69,10 +74,21 @@ export default function AvailabilityPage() {
     return blocks;
   }, [state.recurringEvents, now, until]);
 
-  // Merge manual blocks with recurring blocks
+  // Convert events to blocks for grid display (show all titles locally)
+  const eventBlocks = useMemo((): BusyBlock[] => {
+    return state.events.map(e => ({
+      start: e.start,
+      end: e.end,
+      busy: e.busy,
+      allDay: e.allDay,
+      title: e.title || undefined,
+      sourceId: e.sourceId,
+    }));
+  }, [state.events]);
+
   const allBlocks = useMemo(() => {
-    return [...state.blocks, ...recurringBlocks];
-  }, [state.blocks, recurringBlocks]);
+    return [...state.blocks, ...recurringBlocks, ...eventBlocks];
+  }, [state.blocks, recurringBlocks, eventBlocks]);
 
   const [showRecurring, setShowRecurring] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -115,6 +131,23 @@ export default function AvailabilityPage() {
 
   function handleLeave(sessionId: string) {
     dispatch({ type: 'REMOVE_GROUP', sessionId });
+  }
+
+  function handleSaveEvent(event: CalendarEvent) {
+    if (editingEvent) {
+      dispatch({ type: 'UPDATE_EVENT', id: editingEvent.id, changes: event });
+    } else {
+      dispatch({ type: 'ADD_EVENT', event });
+    }
+    setEditingEvent(null);
+    setCreateFromDate(null);
+    setCreateFromHour(undefined);
+  }
+
+  function handleCancelEvent() {
+    setEditingEvent(null);
+    setCreateFromDate(null);
+    setCreateFromHour(undefined);
   }
 
   async function handleCreate() {
@@ -200,6 +233,12 @@ export default function AvailabilityPage() {
       <main className="page-container">
         <div className="flex flex-wrap justify-end items-center gap-3 mb-6">
           <div className="flex gap-2">
+            <button
+              onClick={() => setCreateFromDate(now)}
+              className="btn btn-primary btn-sm"
+            >
+              + Add event
+            </button>
             <Link href="/me/connect" className="btn btn-secondary btn-sm">
               + Connect calendar
             </Link>
@@ -368,6 +407,15 @@ export default function AvailabilityPage() {
           onCreateClick={() => { setActivePanel(activePanel === 'create' ? null : 'create'); setCreateError(null); }}
         />
       </main>
+        {showEventModal && (
+          <EventModal
+            event={editingEvent ?? undefined}
+            defaultDate={createFromDate ?? undefined}
+            defaultHour={createFromHour}
+            onSave={handleSaveEvent}
+            onCancel={handleCancelEvent}
+          />
+        )}
     </>
   );
 }
