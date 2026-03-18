@@ -50,6 +50,7 @@ export interface UserPreferences {
   bufferMinutes: number;
   lookAheadDays: number;
   eventModeEnabled?: boolean;
+  defaultEventPrivacy?: EventPrivacy;
 }
 
 export interface Proposal {

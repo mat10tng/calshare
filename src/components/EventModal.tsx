@@ -7,6 +7,7 @@ interface Props {
   defaultDate?: string;   // YYYY-MM-DD
   defaultHour?: number;   // 0-23
   defaultEndHour?: number; // 0-23
+  defaultPrivacy?: EventPrivacy;
   onSave: (event: CalendarEvent) => void;
   onCancel: () => void;
 }
@@ -17,7 +18,7 @@ const PRIVACY_OPTIONS: { value: EventPrivacy; label: string; desc: string }[] = 
   { value: 'full', label: 'Share everything', desc: 'Others see title and time details' },
 ];
 
-export function EventModal({ event, defaultDate, defaultHour, defaultEndHour, onSave, onCancel }: Props) {
+export function EventModal({ event, defaultDate, defaultHour, defaultEndHour, defaultPrivacy, onSave, onCancel }: Props) {
   const isEdit = !!event;
   const isImported = event ? event.source !== 'manual' : false;
 
@@ -46,7 +47,7 @@ export function EventModal({ event, defaultDate, defaultHour, defaultEndHour, on
   const [endMin, setEndMin] = useState(initEndMin);
   const [allDay, setAllDay] = useState(event?.allDay ?? false);
   const [busy, setBusy] = useState(event?.busy ?? true);
-  const [privacy, setPrivacy] = useState<EventPrivacy>(event?.privacy ?? 'busy-only');
+  const [privacy, setPrivacy] = useState<EventPrivacy>(event?.privacy ?? defaultPrivacy ?? 'busy-only');
   const [description, setDescription] = useState(event?.description ?? '');
 
   const startMinutes = startHour * 60 + startMin;

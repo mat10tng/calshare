@@ -144,6 +144,13 @@ export default function AvailabilityPage() {
     if (blocksBeforeDrag !== null) {
       dispatch({ type: 'SET_BLOCKS', blocks: blocksBeforeDrag });
       setBlocksBeforeDrag(null);
+      // Remember privacy choice for next event mode use
+      if (event.privacy !== state.preferences.defaultEventPrivacy) {
+        dispatch({
+          type: 'SET_PREFERENCES',
+          preferences: { ...state.preferences, defaultEventPrivacy: event.privacy },
+        });
+      }
     }
     setEditingEvent(null);
     setCreateFromDate(null);
@@ -465,6 +472,7 @@ export default function AvailabilityPage() {
             defaultDate={createFromDate ?? undefined}
             defaultHour={createFromHour}
             defaultEndHour={createFromEndHour}
+            defaultPrivacy={state.preferences.defaultEventPrivacy}
             onSave={handleSaveEvent}
             onCancel={handleCancelEvent}
           />
