@@ -36,6 +36,8 @@ export default function AvailabilityPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [createFromDate, setCreateFromDate] = useState<string | null>(null);
   const [createFromHour, setCreateFromHour] = useState<number | undefined>(undefined);
+  const [createFromEndHour, setCreateFromEndHour] = useState<number | undefined>(undefined);
+  const [blocksBeforeDrag, setBlocksBeforeDrag] = useState<BusyBlock[] | null>(null);
   const showEventModal = editingEvent !== null || createFromDate !== null;
 
   // Personal session creation + block sync handled by AppContext
@@ -139,15 +141,25 @@ export default function AvailabilityPage() {
     } else {
       dispatch({ type: 'ADD_EVENT', event });
     }
+    if (blocksBeforeDrag !== null) {
+      dispatch({ type: 'SET_BLOCKS', blocks: blocksBeforeDrag });
+      setBlocksBeforeDrag(null);
+    }
     setEditingEvent(null);
     setCreateFromDate(null);
     setCreateFromHour(undefined);
+    setCreateFromEndHour(undefined);
   }
 
   function handleCancelEvent() {
+    if (blocksBeforeDrag !== null) {
+      dispatch({ type: 'SET_BLOCKS', blocks: blocksBeforeDrag });
+      setBlocksBeforeDrag(null);
+    }
     setEditingEvent(null);
     setCreateFromDate(null);
     setCreateFromHour(undefined);
+    setCreateFromEndHour(undefined);
   }
 
   async function handleCreate() {
@@ -239,6 +251,19 @@ export default function AvailabilityPage() {
             >
               + Add event
             </button>
+            {/* Event mode toggle */}
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" style={{ color: 'var(--subtle)' }}>
+              <input
+                type="checkbox"
+                checked={state.preferences.eventModeEnabled ?? false}
+                onChange={(e) => dispatch({
+                  type: 'SET_PREFERENCES',
+                  preferences: { ...state.preferences, eventModeEnabled: e.target.checked },
+                })}
+                style={{ accentColor: 'var(--accent)' }}
+              />
+              Event mode
+            </label>
             <Link href="/me/connect" className="btn btn-secondary btn-sm">
               + Connect calendar
             </Link>
@@ -262,8 +287,33 @@ export default function AvailabilityPage() {
           fromDate={now}
           toDate={until}
           onBlocksChange={(newBlocks) => {
-            // Filter out recurring-sourced blocks so we only persist manual edits
+            // Filter out recurring-sourced and event-sourced blocks
             const manual = newBlocks.filter(b => !b.sourceId?.startsWith('recurring:'));
+
+            if (state.preferences.eventModeEnabled) {
+              // Find newly added blocks by comparing with current state
+              const oldKeys = new Set(state.blocks.map(b => `${b.start}|${b.end}`));
+              const added = manual.filter(b => !oldKeys.has(`${b.start}|${b.end}`));
+
+              if (added.length > 0) {
+                // Save current blocks so we can revert on cancel
+                setBlocksBeforeDrag(state.blocks);
+
+                // Find the date and hour range from the new blocks
+                const starts = added.map(b => new Date(b.start));
+                const ends = added.map(b => new Date(b.end));
+                const earliest = new Date(Math.min(...starts.map(d => d.getTime())));
+                const latest = new Date(Math.max(...ends.map(d => d.getTime())));
+
+                setCreateFromDate(earliest.toISOString().split('T')[0]);
+                setCreateFromHour(earliest.getUTCHours());
+                setCreateFromEndHour(latest.getUTCHours());
+
+                // Don't persist the blocks yet — wait for modal save/cancel
+                return;
+              }
+            }
+
             dispatch({ type: 'SET_BLOCKS', blocks: manual });
           }}
           busyColor={state.sessionId ? (state.userColor || participantColor(state.sessionId)) : undefined}
@@ -412,6 +462,7 @@ export default function AvailabilityPage() {
             event={editingEvent ?? undefined}
             defaultDate={createFromDate ?? undefined}
             defaultHour={createFromHour}
+            defaultEndHour={createFromEndHour}
             onSave={handleSaveEvent}
             onCancel={handleCancelEvent}
           />
