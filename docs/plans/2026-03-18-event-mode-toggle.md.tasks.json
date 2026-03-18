@@ -1,0 +1,11 @@
+{
+  "planPath": "docs/plans/2026-03-18-event-mode-toggle.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 1: Add eventModeEnabled to UserPreferences type", "status": "pending"},
+    {"id": 1, "subject": "Task 2: Add eventModeEnabled default to AppContext", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 3: Add EventModal defaultEndHour prop", "status": "pending"},
+    {"id": 3, "subject": "Task 4: Wire up event mode toggle + drag-to-modal on /me page", "status": "pending", "blockedBy": [0, 1, 2]},
+    {"id": 4, "subject": "Task 5: Manual testing", "status": "pending", "blockedBy": [3]}
+  ],
+  "lastUpdated": "2026-03-18T00:00:00.000Z"
+}
