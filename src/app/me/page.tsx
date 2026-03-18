@@ -287,7 +287,7 @@ export default function AvailabilityPage() {
           fromDate={now}
           toDate={until}
           onBlocksChange={(newBlocks) => {
-            // Filter out recurring-sourced and event-sourced blocks
+            // Filter out recurring-sourced blocks so we only persist manual edits
             const manual = newBlocks.filter(b => !b.sourceId?.startsWith('recurring:'));
 
             if (state.preferences.eventModeEnabled) {
@@ -309,7 +309,9 @@ export default function AvailabilityPage() {
                 setCreateFromHour(earliest.getUTCHours());
                 setCreateFromEndHour(latest.getUTCHours());
 
-                // Don't persist the blocks yet — wait for modal save/cancel
+                // Persist blocks so the grid clears its internal overrides,
+                // but save the previous state so cancel/save can revert
+                dispatch({ type: 'SET_BLOCKS', blocks: manual });
                 return;
               }
             }
