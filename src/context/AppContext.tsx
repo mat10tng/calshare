@@ -42,6 +42,7 @@ const DEFAULT_PREFS: UserPreferences = {
   blockedWindows: [],
   bufferMinutes: 15,
   lookAheadDays: 14,
+  eventModeEnabled: false,
 };
 
 interface AppState {
