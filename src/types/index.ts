@@ -49,6 +49,7 @@ export interface UserPreferences {
   blockedWindows: { start: string; end: string; recurrence: RecurrenceRule }[];
   bufferMinutes: number;
   lookAheadDays: number;
+  eventModeEnabled?: boolean;
 }
 
 export interface Proposal {
