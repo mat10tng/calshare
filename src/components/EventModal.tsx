@@ -6,6 +6,7 @@ interface Props {
   event?: CalendarEvent;
   defaultDate?: string;   // YYYY-MM-DD
   defaultHour?: number;   // 0-23
+  defaultEndHour?: number; // 0-23
   onSave: (event: CalendarEvent) => void;
   onCancel: () => void;
 }
@@ -16,7 +17,7 @@ const PRIVACY_OPTIONS: { value: EventPrivacy; label: string; desc: string }[] = 
   { value: 'full', label: 'Share everything', desc: 'Others see title and time details' },
 ];
 
-export function EventModal({ event, defaultDate, defaultHour, onSave, onCancel }: Props) {
+export function EventModal({ event, defaultDate, defaultHour, defaultEndHour, onSave, onCancel }: Props) {
   const isEdit = !!event;
   const isImported = event ? event.source !== 'manual' : false;
 
@@ -32,7 +33,7 @@ export function EventModal({ event, defaultDate, defaultHour, onSave, onCancel }
     : 0;
   const initEndHour = event
     ? new Date(event.end).getUTCHours()
-    : Math.min(initStartHour + 1, 23);
+    : (defaultEndHour ?? Math.min((defaultHour ?? 9) + 1, 23));
   const initEndMin = event
     ? new Date(event.end).getUTCMinutes()
     : 0;
